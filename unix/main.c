@@ -1,9 +1,9 @@
 // Use the tun network device
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <net/if_tun.h>	// tunnel interface
 #include <sys/ioctl.h>	// ioctl configuration of tunnel
 
+#include <net/if_tun.h>	// tunnel interface
 #include <net/if.h>		// ifeq struct
 
 #include <fcntl.h>		// open
@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
 	if (sock == -1)	warn("opening socket");	
 	
 	// Set the name of the interface we're referring to
-	strlcpy(ifa.ifra_name, "tun1", IFNAMSIZ);
+	strlcpy(ifa.ifra_name, "tun2", IFNAMSIZ);
 
 	// Set the IP Address
 	in = (struct sockaddr_in *)&ifa.ifra_addr;
@@ -160,7 +160,19 @@ int main(int argc, char **argv) {
 		}
 		
 		if (fds[TUNNEL_INDEX].revents != 0) {
+			int length; 
+			
 			printf("Network\n");
+
+			do {
+				length = read(tunnel, buffer, S_READ);
+			
+				for (i = 0; i < length; i++) {
+					printf("0x%02x ", buffer[i]);
+				}	
+			} while (length == S_READ);
+
+			printf("\n");
 		}
 	}
 	
