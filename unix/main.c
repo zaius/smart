@@ -166,6 +166,7 @@ int main(int argc, char **argv) {
 
 		if (fds[TUNNEL_INDEX].revents != 0) {
 			int length; 
+			char * encoded;
 
 			printf("Network\n");
 
@@ -173,13 +174,17 @@ int main(int argc, char **argv) {
 			// need to loop
 			length = read(tunnel, buffer, BUFFER_SIZE);
 			
-			// Encode the buffer with slip
-
-
 			for (i = 0; i < length; i++) {
 				printf("0x%02x ", buffer[i]);
 			}	
+			printf("\n");
+			
+			// Encode the buffer with slip
+			length = slip_encode(&encoded, buffer, length);
 
+			for (i = 0; i < length; i++) {
+				printf("0x%02x ", encoded[i]);
+			}
 			printf("\n");
 		}
 	}

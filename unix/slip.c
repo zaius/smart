@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include "slip.h"
 
+// Encode an array of data using SLIP encoding
 size_t slip_encode(char ** dest, char * source, size_t length) {
     int i, j = 0;
 	// If someone handed a packet with characters that all needed 
