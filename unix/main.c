@@ -9,48 +9,68 @@
 #include <poll.h>		// poll
 #include <signal.h>		// signals
 #include <err.h>		// err/warn
+#include <sys/ioctl.h>	// ioctl configuration of tunnel
 
 // Local includes
 #include "main.h"
 #include "slip.h"
 
+// Amount to read on a serial read
+#define S_READ 255
+#define SERIAL_DEV "/dev/cuaa0"
+#define TUNNEL_DEV "/dev/tun"
+
+// Signal handler for CTRL-C
 volatile sig_atomic_t quit = FALSE;
 void sigterm(int signal) {
 	quit = TRUE;
 }
 
 int main(int argc, char **argv) {
+	struct tuninfo tunnelinfo;
 	int tunnel, serial, i;
 	struct pollfd fds[2];
-	char buffer[255];
+	char buffer[S_READ];
+
 
 	// Set up signal handlers
 	signal(SIGINT, sigterm);
 
-	// Open the tunnel interface
-	tunnel = open("/dev/tun0", O_RDWR);
-
-	if (tunnel < 0) {
-		err(tunnel, "Error opening tunnel");
-	}
-
-	// Put the details of the tunnel interface into the fd array for polling
-	fds[0].fd = tunnel;
-	fds[0].events = POLLIN;
-
 	// Open the serial interface
-	serial = open("/dev/cuaa0", O_RDWR);
+	serial = open(SERIAL_DEV, O_RDWR);
 
 	if (serial < 0) {
 		err(serial, "Error opening serial");
 	}
 	
-	// Put the details of the tunnel interface into the fd array for polling
+	// Put the details of the serial interface into the fd array for polling
 	fds[1].fd = serial;
 	fds[1].events = POLLIN;
     
+	
+	// Open the tunnel interface
+	tunnel = open(TUNNEL_DEV, O_RDWR);
 
-	// write(tunnel, "hello", 5);
+	if (tunnel < 0) {
+		err(tunnel, "Error opening tunnel");
+	}
+
+	tunnelinfo.baudrate = 9600;               /* linespeed */
+	tunnelinfo.mtu = 1500;                    /* maximum transmission unit */
+	// tunnelinfo.type = ;                   /* ethernet, tokenring, etc. */
+
+	// Configure the tunnel
+	ioctl(tunnel, TUNSIFINFO, &tunnelinfo);
+	ioctl(tunnel, TUNGIFINFO, &tunnelinfo);
+	
+	// tun_addr.
+	
+	// ioctl(tunnel, SIOCSIFADDR, "10.0.0.1");
+	// Put the details of the tunnel interface into the fd array for polling
+	fds[0].fd = tunnel;
+	fds[0].events = POLLIN;
+
+
 
 	// Start the main loop
 	while (quit == FALSE) {
@@ -71,13 +91,18 @@ int main(int argc, char **argv) {
 		}
 		
 		if (fds[serial].revents != 0) {
+			int length;
+			
 			printf("serial\n");
 			
-			read(serial, buffer, 255);
+			do {
+				length = read(serial, buffer, S_READ);
+			
+				for (i = 0; i < length; i++) {
+					printf("0x%02x ", buffer[i]);
+				}	
+			} while (length == S_READ);
 
-			for (i = 0; i < 255; i++) {
-				printf("%c", buffer[i]);
-			}
 			printf("\n");
 		}
 		
