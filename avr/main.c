@@ -18,7 +18,7 @@
 #include "ipv4.h"
 #include "udp.h"
 #include "slip.h"
-#include "app.h"
+#include "echo.h"
 
 uint8_t counter;
 
@@ -74,7 +74,7 @@ int main() {
 	// Initialise the UART for serial communication
 	uart_init();
 	
-	app_init();
+	echo_init();
 
 	// Initialise the timer for periodic checks
 	timer_init();

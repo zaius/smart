@@ -1,7 +1,7 @@
 /**
  * Internet Zero - AVR Implementation
  * 
- * \file avr/app.h
+ * \file avr/echo.h
  * \author David Kelso - david@kelso.id.au
  * \brief Simple application header file
  */
@@ -12,14 +12,14 @@
 // Prototypes
 
 /**
- * app_init - 
+ * echo_init - 
  * Run time initialisation of the application
  */
-void app_init(void);
+void echo_init(void);
 
 /**
- * app_callback - 
+ * echo_callback - 
  * The function to call when a packet arrives for this application
  * \param header_in A UDP header with all the data contained in the packet
  */
-void app_callback(UDP_HEADER * header_in);
+void echo_callback(UDP_HEADER * header_in);

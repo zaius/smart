@@ -1,7 +1,7 @@
 /**
  * Internet Zero - AVR Implementation
  * 
- * \file avr/app.c
+ * \file avr/echo.c
  * \author David Kelso - david@kelso.id.au
  * \brief Simple UDP echo application
  */
@@ -9,28 +9,28 @@
 #include "conf.h"
 #include "ipv4.h"
 #include "udp.h"
-#include "app.h"
+#include "echo.h"
 #include <avr/io.h>
 
 // For malloc and free
 #include <stdlib.h>
 
 /*
- * app_init - initialise the application
+ * echo_init - initialise the application
  */
-void app_init(void) {
+void echo_init(void) {
 	/*
-	if (udp_listen(PORT, &app_callback)) {
+	if (udp_listen(PORT, &echo_callback)) {
 		log("port in use");
 	}
 	*/
-	udp_listen(PORT, &app_callback);
+	udp_listen(PORT, &echo_callback);
 }
 
 /*
- * app_callback - process an incoming packet
+ * echo_callback - process an incoming packet
  */
-void app_callback(UDP_HEADER * header_in) {
+void echo_callback(UDP_HEADER * header_in) {
 	UDP_HEADER header_out;
 	IPV4_HEADER ip_header_out;
 

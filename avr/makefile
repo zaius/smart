@@ -29,7 +29,7 @@ TARGET = main
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = $(TARGET).c ipv4.c udp.c slip.c app.c conf.c
+SRC = $(TARGET).c ipv4.c udp.c slip.c echo.c conf.c
 
 
 # List Assembler source files here.
