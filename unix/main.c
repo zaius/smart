@@ -163,26 +163,39 @@ int main(int argc, char **argv) {
 
 			length = read(serial, buffer, S_READ);
 
+			// Print the data
+			printf("Encoded: ");
+			for (i = 0; i < length; i++) {
+				printf("0x%02x ", buffer[i]);
+			}	
+			printf("\n");
+			
+
 			// Put the data into the slip queue and read off the number of 
 			// ready packets
 			ready = slip_add_data(buffer, length);
 
+			// Send all the ready packets
 			while (ready > 0) {
-				// Really really wrong
-				length = slip_retrieve(dest);
+				size_t dest_size = 4000, length;
+				uint8_t dest[dest_size];
+
+				length = slip_retrieve(dest, dest_size);
 				write(tunnel, dest, length);
 				ready--;
-			}
-			for (i = 0; i < length; i++) {
-				printf("0x%02x ", buffer[i]);
-			}	
 
-			printf("\n");
+				printf("Decoded: ");
+				for (i = 0; i < length; i++) {
+					printf("0x%02x ", dest[i]);
+				}
+				printf("\n");
+			}
 		}
 
 		if (fds[TUNNEL_INDEX].revents != 0) {
 			int length; 
 			uint8_t * encoded;
+			size_t encoded_size;
 
 			printf("Network\n");
 
@@ -194,15 +207,26 @@ int main(int argc, char **argv) {
 			}	
 			printf("\n");
 			
+		    // If someone handed a packet with characters that all needed
+			// escaping, there would be twice as many characters plus a
+			// SLIP_END character at the start and end.
+			encoded_size = length * 2 + 2;
+			encoded = malloc(encoded_size * sizeof(uint8_t));
+							
 			// Encode the buffer with slip
-			length = slip_encode(&encoded, buffer, length);
-
+			length = slip_encode(encoded, encoded_size, buffer, length);
+			if (length != encoded_size)
+				warn("Encoded buffer too small");
+				
 			for (i = 0; i < length; i++) {
 				printf("0x%02x ", encoded[i]);
 			}
 			printf("\n");
 
+			// Write the packet to the serial device
 			write(serial, encoded, length);
+			
+			free(encoded);
 		}
 	}
 

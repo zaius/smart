@@ -8,45 +8,49 @@
 
 #include <sys/types.h>
 #include <stdlib.h>
+#include <err.h>
+#include <string.h> //memcpy
 #include "slip.h"
+
+#define FALSE 0
+#define TRUE 1
 
 /// The length of the buffers to use in the linked list. This should be set
 /// higher than the maximum possible packet size 
 #define BUFFER_LENGTH 4000
 
 // Encode an array of data using SLIP encoding
-size_t slip_encode(uint8_t ** dest, uint8_t * source, size_t length) {
+size_t slip_encode(uint8_t * dest, size_t dest_size, uint8_t * source, size_t source_size) {
 	int i, j = 0;
 	uint8_t c;
-	uint8_t * buffer;
 
-	// If someone handed a packet with characters that all needed 
-	// escaping, there would be twice as many characters plus a 
-	// SLIP_END character at the start and end.
-	buffer = malloc((length * 2 + 2) * sizeof(uint8_t));
+	// Zero sized buffers can break things
+	if (dest_size < 1 || source_size < 1) return 0;
 
-	// Point the destination pointer to the address of the array
-	*dest = buffer;
+	dest[j++] = SLIP_END;
 
-	buffer[j++] = SLIP_END;
-
-	for (i = 0; i < length; i++) {
+	for (i = 0; i < source_size; i++) {
+		// If we've hit the limit on the destination, get out
+		// FIXME: I have a feeling there still could be an error with this and the adding of the slip_end character after the loop
+		if (j >= dest_size) return j;
+		
 		c = source[i];
 
 		if (c == SLIP_END) {
-			buffer[j++] = SLIP_ESC;
-			buffer[j++] = SLIP_ESC_END;
+			dest[j++] = SLIP_ESC;
+			dest[j++] = SLIP_ESC_END;
 		}
 		else if (c == SLIP_ESC) {
-			buffer[j++] = SLIP_ESC;
-			buffer[j++] = SLIP_ESC_ESC;
+			dest[j++] = SLIP_ESC;
+			dest[j++] = SLIP_ESC_ESC;
 		}
 		else {
-			buffer[j++] = c;
+			dest[j++] = c;
 		}
+		
 	}
 
-	buffer[j++] = SLIP_END;
+	dest[j++] = SLIP_END;
 
 	return j;
 }
@@ -58,19 +62,19 @@ struct packet {
 	uint8_t data[BUFFER_LENGTH];
 	size_t length;
 	PACKET * next;
-}
-PACKET * first = NULL, * pointer = NULL;
+};
 
+PACKET * first = NULL, * pointer = NULL;
+// Since packets are bordered with SLIP_END characters on each side we
+// need to save the data between one set of SLIP_END characters and
+// ignore the data between the other (there should be nothing so it will
+// only be noise
+int inpacket = FALSE;
+int dest_pos = 0;
 
 int slip_add_data(uint8_t * source, size_t length) {
 	int source_pos, count = 0;
-	static int dest_pos;
-	// Since packets are bordered with SLIP_END characters on each side we
-	// need to save the data between one set of SLIP_END characters and
-	// ignore the data between the other (there should be nothing so it will
-	// only be noise
-	static int inpacket; 
-	uint8_t c, previous;
+	uint8_t c;
 
 	for (source_pos = 0; source_pos < length; source_pos++) {
 		c = source[source_pos];
@@ -78,7 +82,12 @@ int slip_add_data(uint8_t * source, size_t length) {
 		if (c == SLIP_END) { // End (or beginning) of a packet
 			if (inpacket) { // End of a packet
 				inpacket = FALSE;
-
+				
+				// First should never be null if we're in a packet (CHECK THIS)
+				pointer = first;
+				while (pointer->next != NULL)
+					pointer = pointer->next;
+				
 				pointer->length = dest_pos;
 				dest_pos = 0;
 			}
@@ -110,7 +119,7 @@ int slip_add_data(uint8_t * source, size_t length) {
 
 		else if (c == SLIP_ESC) {
 			// If we receive an escape char, read the next char
-			c = source[source_pos++];
+			c = source[++source_pos];
 
 			if (c == SLIP_ESC_END)
 				c = SLIP_END;
@@ -123,15 +132,21 @@ int slip_add_data(uint8_t * source, size_t length) {
 				warn("SLIP escape character used to escape nothing!");
 			}
 		}
-
+		
 		// If we get this far the info is data so add it to the buffer
-		if (dest_pos < BUFFER_LENGTH) 
-			buffer[dest_pos++] = c;
+		if (dest_pos < BUFFER_LENGTH) {
+			// Move the pointer to the current packet
+			// FIXME: I really don't know why it crashes when i don't do this
+			pointer = first;
+			while (pointer->next != NULL) 
+				pointer = pointer->next;
+			pointer->data[dest_pos++] = c;
+		}
 	}
 
 	// We've added all the data, count the number of ready packets
 	pointer = first;
-	while (pointer->next != null)
+	while (pointer->next != NULL)
 		count++;
 
 	// If we're halfway through a packet, it doesn't count as complete
@@ -143,17 +158,33 @@ int slip_add_data(uint8_t * source, size_t length) {
 
 
 // take the first packet off the linked list and return the data
-size_t slip_retrieve(uint8_t ** dest) {
+size_t slip_retrieve(uint8_t * dest, size_t dest_size) {
+	size_t source_size;
+	uint8_t * source;
+	int length;
+	
 	// If there are no packets ready then return -1
 	if (first == NULL) return -1;
+	if (first->next == NULL && inpacket) return -1;
 
-	PACKET * packet = first;
+	// Get pointers to the data from the packet
+	source = first->data;
+	source_size = first->length;
 
-	// Move the first pointer on
-	first = first->next;
+	// Find the smaller of the buffers
+	if (source_size > dest_size)
+		length = dest_size;
+	else 
+		length = source_size;
+
+	// Copy the data
+	memcpy(dest, source, length);
+
 	
-	dest = &(packet->data);
-	// Will this free the data inside?
-	// free(packet);
-	return packet->length;
+	// Move the first pointer on
+	pointer = first;
+	first = first->next;
+	free(pointer);
+
+	return source_size;
 }

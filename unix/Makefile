@@ -3,7 +3,7 @@ SRCS = main.c slip.c
 
 OBJS = $(SRCS:.c=.o)
 LDFLAGS =
-CFLAGS = -Wall
+CFLAGS = -Wall -g
 
 
 # TARGETS

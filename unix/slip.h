@@ -27,7 +27,7 @@
  * \param length the length of the source array
  * \return the size of the destination array pointed to by dest
  */
-size_t slip_encode(uint8_t ** dest, uint8_t * source, size_t length); 
+size_t slip_encode(uint8_t * dest, size_t dest_size, uint8_t * source, size_t source_size);
 
 /**
  * slip_add_data -
@@ -51,5 +51,5 @@ int slip_add_data(uint8_t * source, size_t length);
  * \param dest an array pointer that will be set to point to the data
  * \returns The size of the array of data
  */
-size_t slip_retrieve(uint8_t ** dest);
+size_t slip_retrieve(uint8_t * dest, size_t dest_size);
 
