@@ -2,13 +2,13 @@
 #include "slip.h"
 
 // Encode an array of data using SLIP encoding
-size_t slip_encode(char ** dest, char * source, size_t length) {
+size_t slip_encode(uint8_t ** dest, uint8_t * source, size_t length) {
     int i, j = 0;
 	// If someone handed a packet with characters that all needed 
 	// escaping, there would be twice as many characters plus a 
 	// SLIP_END character at the start and end.
-	char buffer[length * 2 + 2];
-	unsigned char c;
+	uint8_t buffer[length * 2 + 2];
+	uint8_t c;
 
 	*dest = buffer;
 	

@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
 	struct tuninfo tunnelinfo;
 	int tunnel, serial, i, sock;
 	struct pollfd fds[2];
-	char buffer[BUFFER_SIZE];
+	uint8_t buffer[BUFFER_SIZE];
 	struct ifaliasreq ifa;
 	struct sockaddr_in *in;
 
@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
 
 		if (fds[TUNNEL_INDEX].revents != 0) {
 			int length; 
-			char * encoded;
+			uint8_t * encoded;
 
 			printf("Network\n");
 
