@@ -45,6 +45,8 @@ void slip_poll(void) {
 	while (slip_getc(&c)) {
 		if (c == SLIP_END) { // The framing character
 			if (inpacket) {
+				uint8_t version;
+
 				// End marker found, we have a complete packet
 				// Move the length into the global variable
 				data_length = length;
@@ -52,7 +54,7 @@ void slip_poll(void) {
 
 				// Get the version from the packet so we know which network layer
 				// to hand it to
-				uint8_t version = data[0] >> 4;
+				version = data[0] >> 4;
 
 				// TODO: Need to do the whole #ifdef thing and check whether we 
 				// have certain versions compiled in

@@ -8,13 +8,10 @@
 #include <avr/io.h>
 
 #include <avr/eeprom.h>
-#include <stdlib.h>
 
 // Interrupt handling
 #include <avr/signal.h>
 #include <avr/interrupt.h>
-
-// #include <inttypes.h>
 
 #include "main.h"
 #include "conf.h"
@@ -22,12 +19,6 @@
 #include "udp.h"
 #include "slip.h"
 #include "app.h"
-
-struct ipv4_header * ip;
-struct udp_header * udp;
-// TODO: Fix this - use malloc
-struct ipv4_header one;
-struct udp_header two;
 
 uint8_t counter;
 
@@ -78,11 +69,6 @@ void external_init() {
 
 // Main function and idle loop
 int main() {
-	ip = &one;
-	udp = &two;
-	// ip = malloc(sizeof(ipv4_header));
-	// udp = malloc(sizeof(udp_header));
-
 	DDRB = 0xff;
 
 	// Initialise the UART for serial communication

@@ -3,7 +3,7 @@
  * 
  * \file avr/app.c
  * \author David Kelso - david@kelso.id.au
- * \brief Simple application
+ * \brief Simple UDP echo application
  */
 
 #include "conf.h"
@@ -31,43 +31,33 @@ void app_init(void) {
  * app_callback - process an incoming packet
  */
 void app_callback(UDP_HEADER * header_in) {
-	PORTB++;
-	/*
+	UDP_HEADER header_out;
+	IPV4_HEADER ip_header_out;
+
+	PORTB = ~PORTB;
+
+	header_out.ip_header = &ip_header_out;
+
 	// Reset the length
-	data_length = 0;
-
-	UDP_HEADER * header_out = malloc(sizeof(UDP_HEADER));
-	header_out->ip_header = malloc(sizeof(IPV4_HEADER));
+	data_length = header_in->ip_header->length;
 	
-	data_length += IPV4_HEADER_LENGTH;
-	data_length += UDP_HEADER_LENGTH;
+	header_out.source_port = PORT;
+	header_out.remote_port = header_in->source_port;
+	header_out.length = header_in->length;
 
-	data[data_length++] = 't';
-	data[data_length++] = 'e';
-	data[data_length++] = 's';
-	data[data_length++] = 't';
+	header_out.ip_header->protocol = UDP_PROTOCOL;
+	header_out.ip_header->length = data_length;
 
-	header_out->source_port = PORT;
-	header_out->remote_port = header_in->source_port;
-	header_out->length = data_length;
+	// header_out.ip_header->source_ip = local_ip;
+	header_out.ip_header->source_ip[0] = local_ip[0];
+	header_out.ip_header->source_ip[1] = local_ip[1];
+	header_out.ip_header->source_ip[2] = local_ip[2];
+	header_out.ip_header->source_ip[3] = local_ip[3];
 
-	header_out->ip_header->protocol = UDP_PROTOCOL;
-	header_out->ip_header->length = data_length;
-	// ah.. this should use some defined ip as opposed to just swapping them
-	// Also, some way to just assign the addresses of the arrays instead of
-	// doing a deep copy of their values
-	header_out->ip_header->local_ip[0] = header_in->ip_header->remote_ip[0];
-	header_out->ip_header->local_ip[1] = header_in->ip_header->remote_ip[1];
-	header_out->ip_header->local_ip[2] = header_in->ip_header->remote_ip[2];
-	header_out->ip_header->local_ip[3] = header_in->ip_header->remote_ip[3];
-	header_out->ip_header->remote_ip[0] = header_in->ip_header->local_ip[0];
-	header_out->ip_header->remote_ip[1] = header_in->ip_header->local_ip[1];
-	header_out->ip_header->remote_ip[2] = header_in->ip_header->local_ip[2];
-	header_out->ip_header->remote_ip[3] = header_in->ip_header->local_ip[3];
+	header_out.ip_header->dest_ip[0] = header_in->ip_header->source_ip[0];
+	header_out.ip_header->dest_ip[1] = header_in->ip_header->source_ip[1];
+	header_out.ip_header->dest_ip[2] = header_in->ip_header->source_ip[2];
+	header_out.ip_header->dest_ip[3] = header_in->ip_header->source_ip[3];
 
-	udp_send(header_out);
-
-	free(header_out->ip_header);
-	free(header_out);
-	*/
+	udp_send(&header_out);
 }

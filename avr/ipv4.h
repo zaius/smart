@@ -22,7 +22,7 @@
 #define TTL 255
 
 struct ipv4_header {
-	uint8_t * source_ip;
+	uint8_t source_ip[4];
 	uint8_t dest_ip[4];
 	uint8_t protocol;
 	uint16_t length;

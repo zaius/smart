@@ -103,7 +103,6 @@ void udp_receive(struct ipv4_header * header_in) {
 // TODO: error code return values
 void udp_listen(uint16_t port, void (*callback)(UDP_HEADER *udp_header)) {
 	NODE * pointer = first;
-	uint8_t count;
 
 	if (pointer == NULL) {
 		// This is the first application
