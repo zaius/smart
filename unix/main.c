@@ -19,10 +19,18 @@
 #include "main.h"
 #include "slip.h"
 
+// stuff for inet_addr
+#include <netinet/in.h>
+#include <arpa/inet.h>
+		  
+
 // Amount to read on a serial read
 #define S_READ 255
 #define SERIAL_DEV "/dev/cuaa0"
-#define TUNNEL_DEV "/dev/tun"
+#define TUNNEL_DEV "/dev/tun2"
+
+#define TUNNEL_INDEX 0
+#define SERIAL_INDEX 1
 
 // Signal handler for CTRL-C
 volatile sig_atomic_t quit = FALSE;
@@ -32,11 +40,12 @@ void sigterm(int signal) {
 
 int main(int argc, char **argv) {
 	struct tuninfo tunnelinfo;
-	int tunnel, serial, i;
+	int tunnel, serial, i, sock;
 	struct pollfd fds[2];
 	char buffer[S_READ];
-	struct ifreq ifr;
-	struct sockaddr address;
+	//struct ifreq ifr;
+	struct ifaliasreq ifa;
+	struct sockaddr_in *in;
 
 	// Set up signal handlers
 	signal(SIGINT, sigterm);
@@ -49,9 +58,8 @@ int main(int argc, char **argv) {
 	}
 	
 	// Put the details of the serial interface into the fd array for polling
-	fds[1].fd = serial;
-	fds[1].events = POLLIN;
-    
+	fds[SERIAL_INDEX].fd = serial;
+	fds[SERIAL_INDEX].events = POLLIN;
 	
 	// Open the tunnel interface
 	tunnel = open(TUNNEL_DEV, O_RDWR);
@@ -65,23 +73,63 @@ int main(int argc, char **argv) {
 	// tunnelinfo.type = ;     		// ethernet, tokenring, etc.
 
 	// Configure the tunnel
-	ioctl(tunnel, TUNSIFINFO, &tunnelinfo);
-	ioctl(tunnel, TUNGIFINFO, &tunnelinfo);
+	i = ioctl(tunnel, TUNSIFINFO, &tunnelinfo);
+	if (i == -1)
+		warn("TUNSIFINFO");
+	i = ioctl(tunnel, TUNGIFINFO, &tunnelinfo);
+	if (i == -1)
+		warn("TUNGIFINFO");
 
-	ioctl(tunnel, TUNSIFMODE, IFF_POINTOPOINT);
-	strlcpy(ifr.ifr_name, "i0", 3);
-	
+	i = IFF_BROADCAST;
+	i = ioctl(tunnel, TUNSIFMODE, &i);
+	if (i == -1)
+		warn("TUNSIFMODE");
+
 	// Prepend packets with the destination address
-	ioctl(tunnel, TUNSLMODE, 1);
+	i = 1;
+	i = ioctl(tunnel, TUNSLMODE, &i);
+	if (i == -1)
+		warn("TUNSLMODE");
+
+
+	sock = socket(AF_INET, SOCK_RAW, 0);
+	if (sock == -1)
+		warn("opening socket");	
+	// Set the IP address
+	strlcpy(ifa.ifra_name, "tun1", IFNAMSIZ);
+	in = (struct sockaddr_in *)&ifa.ifra_addr;
+	in->sin_family = AF_INET;
+	in->sin_len = sizeof(ifa.ifra_addr);
+	in->sin_addr.s_addr = inet_addr("10.0.0.1");
+
+	in = (struct sockaddr_in *)&ifa.ifra_broadaddr;
+	in->sin_family = AF_INET;
+	in->sin_len = sizeof(ifa.ifra_addr);
+	in->sin_addr.s_addr = inet_addr("10.0.0.255");
+
+	in = (struct sockaddr_in *)&ifa.ifra_mask;
+	in->sin_family = AF_INET;
+	in->sin_len = sizeof(ifa.ifra_addr);
+	in->sin_addr.s_addr = inet_addr("255.255.255.0");
+
+	i = ioctl(sock, SIOCAIFADDR, &ifa);
+	if (i == -1)
+		warn("SIOCAIFADDR");
+/*
 	
+	// Set the subnet mask
+	strlcpy(address.sa_data, "255.255.255.0", sizeof(address.sa_data));
+	// ifr.ifr_broadaddr = inet_addr("255.255.255.0");
 	address.sa_family = AF_INET;
-	strlcpy(address.sa_data, "10.10.10.10", 11);
 	ifr.ifr_addr = address;
-	ioctl(tunnel, SIOCSIFADDR, &ifr);
-	ioctl(tunnel, SIOCSIFNETMASK, "255.255.255.0");
+	i = ioctl(sock, SIOCSIFNETMASK, &ifr);
+	if (i == -1)
+		warn("SIOCSIFNETMASK");
+	*/
+
 	// Put the details of the tunnel interface into the fd array for polling
-	fds[0].fd = tunnel;
-	fds[0].events = POLLIN;
+	fds[TUNNEL_INDEX].fd = tunnel;
+	fds[TUNNEL_INDEX].events = POLLIN;
 
 
 
@@ -96,16 +144,16 @@ int main(int argc, char **argv) {
 			warn("Poll Error");
 			continue;
 		}
-		
+
 		// timed out, continue the loop
 		if (result == 0) {
 			printf("timeout\n");
 			continue;
 		}
-		
-		if (fds[serial].revents != 0) {
+
+		if (fds[SERIAL_INDEX].revents != 0) {
 			int length;
-			
+
 			printf("serial\n");
 			
 			do {
@@ -119,11 +167,9 @@ int main(int argc, char **argv) {
 			printf("\n");
 		}
 		
-		if (fds[tunnel].revents != 0) {
+		if (fds[TUNNEL_INDEX].revents != 0) {
 			printf("Network\n");
 		}
-		
-		
 	}
 	
 	// We must have received a signal, tidy up and exit
