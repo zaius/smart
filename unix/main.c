@@ -8,6 +8,7 @@
 #include <unistd.h>		// write
 #include <poll.h>		// poll
 #include <signal.h>		// signals
+#include <err.h>		// err/warn
 
 // Local includes
 #include "main.h"
@@ -27,30 +28,26 @@ int main(int argc, char **argv) {
 	signal(SIGINT, sigterm);
 
 	// Open the tunnel interface
-	tunnel = open("/dev/tun0", 0, 0);
+	tunnel = open("/dev/tun0", O_RDWR);
 
-	if (!tunnel) {
-		printf("Error opening tunnel");
-		return 1;
+	if (tunnel < 0) {
+		err(tunnel, "Error opening tunnel");
 	}
 
 	// Put the details of the tunnel interface into the fd array for polling
 	fds[0].fd = tunnel;
 	fds[0].events = POLLIN;
-	fds[0].revents = POLLIN;
 
 	// Open the serial interface
-	serial = open("/dev/cuaa0", 0, 0);
+	serial = open("/dev/cuaa0", O_RDWR);
 
-	if (!serial) {
-		printf("Error opening serial");
-		return 1;
+	if (serial < 0) {
+		err(serial, "Error opening serial");
 	}
 	
 	// Put the details of the tunnel interface into the fd array for polling
 	fds[1].fd = serial;
 	fds[1].events = POLLIN;
-	fds[1].revents = POLLIN;
     
 
 	// write(tunnel, "hello", 5);
@@ -58,16 +55,24 @@ int main(int argc, char **argv) {
 	// Start the main loop
 	while (quit == FALSE) {
 		int result = 0;
+		
 		result = poll(fds, 2, 500);
 		
-		// timed out, continue the loop
-		if (result == 0) {
-			printf("hi\n");
+		if (result < 0) {
+			// error in poll, warn
+			warn("Poll Error");
 			continue;
 		}
 		
-		if (result == serial) {
+		// timed out, continue the loop
+		if (result == 0) {
+			printf("timeout\n");
+			continue;
+		}
+		
+		if (fds[serial].revents != 0) {
 			printf("serial\n");
+			
 			read(serial, buffer, 255);
 
 			for (i = 0; i < 255; i++) {
@@ -75,18 +80,18 @@ int main(int argc, char **argv) {
 			}
 			printf("\n");
 		}
-		else if (result == tunnel) {
+		
+		if (fds[tunnel].revents != 0) {
 			printf("Network\n");
 		}
-		else {
-			// error in poll, exit
-			return -1;
-		}
+		
 		
 	}
 	
 	// We must have received a signal, tidy up and exit
 	printf("Exiting...\n");
+	close(serial);
+	close(tunnel);
 
 	return 0;
 }
