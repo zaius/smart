@@ -1,7 +1,9 @@
-/* Internet Zero - AVR Implementation
- * David Kelso - david@kelso.id.au
+/**
+ * Internet Zero - AVR Implementation
  *
- * ipv6.c - Internet Protocol (version 6) implementation
+ * \file avr/ipv6.c
+ * \author David Kelso - david@kelso.id.au
+ * \brief Internet protocol (version 6) implementation
  */
 
 #include "ipv6.h"

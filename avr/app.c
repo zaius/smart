@@ -1,8 +1,11 @@
-/* Internet Zero - AVR Implementation
- * David Kelso - david@kelso.id.au
- *
- * app.c - Application
+/**
+ * Internet Zero - AVR Implementation
+ * 
+ * \file avr/app.c
+ * \author David Kelso - david@kelso.id.au
+ * \brief Simple application
  */
+
 #include "conf.h"
 #include "ipv4.h"
 #include "udp.h"

@@ -1,8 +1,10 @@
-/* Internet Zero - AVR Implementation
- * David Kelso - david@kelso.id.au
- *
- * ipv4.h - Internet Protocol (version 4) header
+/**
+ * Internet Zero - AVR Implementation
  * 
+ * \file avr/ipv4.h
+ * \author David Kelso - david@kelso.id.au
+ * \brief Internet Protocol (version 4) header
+ *
  * Implementation details:
  * http://en.wikipedia.org/wiki/IPV4
  * http://www.ietf.org/rfc/rfc791.txt

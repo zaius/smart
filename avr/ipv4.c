@@ -1,8 +1,11 @@
-/* Internet Zero - AVR Implementation
- * David Kelso - david@kelso.id.au
- *
- * ipv4.c - Internet Protocol (version 4) implementation
+/**
+ * Internet Zero - AVR Implementation
+ * 
+ * \file avr/ipv4.c
+ * \author David Kelso - david@kelso.id.au
+ * \brief Internet Protocol (version 4) implementation
  */
+
 // TODO: Shouldn't need this but have to do that carry flag hack
 #include <avr/io.h> 
 

@@ -1,9 +1,11 @@
-/* Internet Zero - AVR Implementation
-* David Kelso - david@kelso.id.au
-*
-* slip.c - Slip device driver
-*
-*/
+/**
+ * Internet Zero - AVR Implementation
+ * 
+ * \file avr/slip.c
+ * \author David Kelso - david@kelso.id.au
+ * \brief SLIP device driver
+ */
+
 #include "conf.h"
 
 #include "slip.h"
@@ -11,10 +13,7 @@
 #include <avr/io.h>
 #include <avr/delay.h>
 
-/*
-* Send a packet over the slip device
-* Blocks until the entire packet is finished
-*/
+
 void slip_send() {
 	uint8_t i, c;
 
@@ -40,10 +39,6 @@ void slip_send() {
 }
 
 
-/*
- * Poll for a packet on the slip device. If there is a packet available, pass
- * it up to the corresponding network layer.
- */
 void slip_poll(void) {
 	uint8_t c, previous;
 	uint16_t length = 0;
@@ -117,6 +112,7 @@ uint8_t slip_getc(uint8_t *c) {
 		return 0;
 	}
 }
+
 
 void slip_putc(uint8_t c) {
 	// Wait until the buffer is empty

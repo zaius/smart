@@ -1,7 +1,9 @@
-/* Internet Zero - AVR Implementation
- * David Kelso - david@kelso.id.au
- *
- * main.c - Main program containing initialisation and idle loop
+/**
+ * Internet Zero - AVR Implementation
+ * 
+ * \file avr/main.c
+ * \author David Kelso - david@kelso.id.au
+ * \brief Main program containing initialisation and idle loop
  */
 #include <avr/io.h>
 

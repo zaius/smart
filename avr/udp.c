@@ -1,7 +1,11 @@
-/* Internet Zero - AVR Implementation
- * David Kelso - david@kelso.id.au
+/**
+ * Internet Zero - AVR Implementation
+ * 
+ * \file avr/udp.c
+ * \author David Kelso - david@kelso.id.au
+ * \brief User Datagram Protocol transport layer implementation
  *
- * udp.c - UDP transport layer implementation
+ * ftp://ftp.rfc-editor.org/in-notes/rfc768.txt
  */
 
 #include "conf.h"

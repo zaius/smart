@@ -1,3 +1,11 @@
+/**
+ * Internet Zero - Unix Gateway
+ * 
+ * \file unix/main.c
+ * \author David Kelso - david@kelso.id.au
+ * \brief Unix gateway main loop
+ */
+
 // Use the tun network device
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -149,17 +157,25 @@ int main(int argc, char **argv) {
 		}
 
 		if (fds[SERIAL_INDEX].revents != 0) {
-			int length;
+			int length, ready;
 
 			printf("serial\n");
 
-			do {
-				length = read(serial, buffer, S_READ);
+			length = read(serial, buffer, S_READ);
 
-				for (i = 0; i < length; i++) {
-					printf("0x%02x ", buffer[i]);
-				}	
-			} while (length == S_READ);
+			// Put the data into the slip queue and read off the number of 
+			// ready packets
+			ready = slip_add_data(buffer, length);
+
+			while (ready > 0) {
+				// Really really wrong
+				length = slip_retrieve(dest);
+				write(tunnel, dest, length);
+				ready--;
+			}
+			for (i = 0; i < length; i++) {
+				printf("0x%02x ", buffer[i]);
+			}	
 
 			printf("\n");
 		}
@@ -170,8 +186,7 @@ int main(int argc, char **argv) {
 
 			printf("Network\n");
 
-			// tun always promises to give a full packet therefore there is no
-			// need to loop
+			// tun always promises to give a full packet which makes life easy
 			length = read(tunnel, buffer, BUFFER_SIZE);
 			
 			for (i = 0; i < length; i++) {

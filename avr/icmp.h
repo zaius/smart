@@ -1,11 +1,14 @@
-/* Internet Zero - AVR Implementation
- * David Kelso - david@kelso.id.au
+/**
+ * Internet Zero - AVR Implementation
  *
- * icmp.h - Internet Control Message Protocol network layer header
+ * \file avr/icmp.h
+ * \author David Kelso - david@kelso.id.au
+ * \brief Internet Control Message Protocol network layer header
+ *
  * RFC: http://www.ietf.org/rfc/rfc792.txt
  */
 
-// Define the protocol for ICMP in the IP header
+/// The protocol number for ICMP in the IP header
 #define ICMP_PROTOCOL 1
 
 
@@ -19,4 +22,3 @@ struct icmp_header {
 };
 
 // Prototypes
-// uint8_t add_icmp_header(struct icmp_header * header);
