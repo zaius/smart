@@ -1,0 +1,35 @@
+Find good solution for data length needing to be known before appending headers
+	// Try change position stuff to be pointers
+Some variables are incorrect sizes / mixed sizes
+// SLIP needs some work before it will receive packets
+// Some solution to SLIP needing a seperate receive buffer 
+Some solution to half received/incomplete slip packets
+	stop allowing disjointed packets?
+	Block until a full packet received (would need some sort of timeout)
+Find a good source for seeding random numbers
+	First incoming packet?
+	Seed in eeprom?
+IPV6
+ICMP ping and ping reply
+Struct memory assignment from pointers with malloc (in main)
+// Standard function commenting for automatic doco - doxygen?
+	Move existing comments to doxygen
+// Make receiver strip headers and insert into structs
+// Dealing with errors (eg. not implemented ICMP codes)
+Logging / debugging messages
+Move all logging stuff to be a compile time option
+Make sure malloc memory is being correctly freed
+Drop IP packets not addressed to this IP
+Find a good way to deal with broadcast packets
+Put into SVN repository
+
+
+
+APPLICATION
+Registration done with a state machine?
+States: 
+	Idle - usual state, waiting for external or network stimulus
+	Waiting for registration - after sending out a broadcast
+	Received broadcast
+		Waiting for external stimulus - will send a registration message to origin of broadcast
+		Waiting for network stimulus 
