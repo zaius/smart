@@ -1,10 +1,10 @@
 // Use the tun network device
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <net/if_tun.h>
+#include <net/if_tun.h>	// tunnel interface
 #include <sys/ioctl.h>	// ioctl configuration of tunnel
 
-#include <net/if.h>
+#include <net/if.h>		// ifeq struct
 
 #include <fcntl.h>		// open
 #include <stdio.h>		// printf
@@ -13,6 +13,7 @@
 #include <poll.h>		// poll
 #include <signal.h>		// signals
 #include <err.h>		// err/warn
+#include <string.h>		// strlcpy
 
 // Local includes
 #include "main.h"
@@ -35,6 +36,7 @@ int main(int argc, char **argv) {
 	struct pollfd fds[2];
 	char buffer[S_READ];
 	struct ifreq ifr;
+	struct sockaddr address;
 
 	// Set up signal handlers
 	signal(SIGINT, sigterm);
@@ -58,19 +60,24 @@ int main(int argc, char **argv) {
 		err(tunnel, "Error opening tunnel");
 	}
 
-	tunnelinfo.baudrate = 9600;               /* linespeed */
-	tunnelinfo.mtu = 1500;                    /* maximum transmission unit */
-	// tunnelinfo.type = ;                   /* ethernet, tokenring, etc. */
+	tunnelinfo.baudrate = 9600;		// linespeed 
+	tunnelinfo.mtu = 1500;     		// maximum transmission unit 
+	// tunnelinfo.type = ;     		// ethernet, tokenring, etc.
 
 	// Configure the tunnel
 	ioctl(tunnel, TUNSIFINFO, &tunnelinfo);
 	ioctl(tunnel, TUNGIFINFO, &tunnelinfo);
 
 	ioctl(tunnel, TUNSIFMODE, IFF_POINTOPOINT);
-	// ifr.ifr_name = "tunl0";
+	strlcpy(ifr.ifr_name, "i0", 3);
 	
+	// Prepend packets with the destination address
+	ioctl(tunnel, TUNSLMODE, 1);
 	
-	ioctl(tunnel, SIOCSIFADDR, "10.10.10.10"); // &ifr);
+	address.sa_family = AF_INET;
+	strlcpy(address.sa_data, "10.10.10.10", 11);
+	ifr.ifr_addr = address;
+	ioctl(tunnel, SIOCSIFADDR, &ifr);
 	ioctl(tunnel, SIOCSIFNETMASK, "255.255.255.0");
 	// Put the details of the tunnel interface into the fd array for polling
 	fds[0].fd = tunnel;
