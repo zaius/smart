@@ -74,58 +74,50 @@ int main(int argc, char **argv) {
 
 	// Configure the tunnel
 	i = ioctl(tunnel, TUNSIFINFO, &tunnelinfo);
-	if (i == -1)
-		warn("TUNSIFINFO");
+	if (i == -1) warn("TUNSIFINFO");
 	i = ioctl(tunnel, TUNGIFINFO, &tunnelinfo);
-	if (i == -1)
-		warn("TUNGIFINFO");
+	if (i == -1) warn("TUNGIFINFO");
 
 	i = IFF_BROADCAST;
 	i = ioctl(tunnel, TUNSIFMODE, &i);
-	if (i == -1)
-		warn("TUNSIFMODE");
+	if (i == -1) warn("TUNSIFMODE");
 
 	// Prepend packets with the destination address
 	i = 1;
 	i = ioctl(tunnel, TUNSLMODE, &i);
-	if (i == -1)
-		warn("TUNSLMODE");
+	if (i == -1) warn("TUNSLMODE");
 
 
+	// create a socket in order to configure the interface
 	sock = socket(AF_INET, SOCK_RAW, 0);
-	if (sock == -1)
-		warn("opening socket");	
-	// Set the IP address
+	if (sock == -1)	warn("opening socket");	
+	
+	// Set the name of the interface we're referring to
 	strlcpy(ifa.ifra_name, "tun1", IFNAMSIZ);
+
+	// Set the IP Address
 	in = (struct sockaddr_in *)&ifa.ifra_addr;
 	in->sin_family = AF_INET;
 	in->sin_len = sizeof(ifa.ifra_addr);
 	in->sin_addr.s_addr = inet_addr("10.0.0.1");
 
+	// Set the Broadcast Address
 	in = (struct sockaddr_in *)&ifa.ifra_broadaddr;
 	in->sin_family = AF_INET;
 	in->sin_len = sizeof(ifa.ifra_addr);
 	in->sin_addr.s_addr = inet_addr("10.0.0.255");
 
+	// Set the net mask
 	in = (struct sockaddr_in *)&ifa.ifra_mask;
 	in->sin_family = AF_INET;
 	in->sin_len = sizeof(ifa.ifra_addr);
 	in->sin_addr.s_addr = inet_addr("255.255.255.0");
 
+	// Assign the addresses to the interface
 	i = ioctl(sock, SIOCAIFADDR, &ifa);
 	if (i == -1)
 		warn("SIOCAIFADDR");
-/*
-	
-	// Set the subnet mask
-	strlcpy(address.sa_data, "255.255.255.0", sizeof(address.sa_data));
-	// ifr.ifr_broadaddr = inet_addr("255.255.255.0");
-	address.sa_family = AF_INET;
-	ifr.ifr_addr = address;
-	i = ioctl(sock, SIOCSIFNETMASK, &ifr);
-	if (i == -1)
-		warn("SIOCSIFNETMASK");
-	*/
+
 
 	// Put the details of the tunnel interface into the fd array for polling
 	fds[TUNNEL_INDEX].fd = tunnel;
