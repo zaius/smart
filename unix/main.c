@@ -23,12 +23,16 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#define BUFFER_SIZE 4000
 
 // Amount to read on a serial read
 #define S_READ 255
 #define SERIAL_DEV "/dev/cuaa0"
+
 #define TUNNEL_DEV "/dev/tun2"
 #define TUNNEL_IF "tun2"
+#define TUNNEL_MTU 1500
+#define TUNNEL_BAUD 9600
 
 #define IP_ADDR "10.0.0.1"
 #define BROAD_ADDR "10.0.0.255"
@@ -47,8 +51,7 @@ int main(int argc, char **argv) {
 	struct tuninfo tunnelinfo;
 	int tunnel, serial, i, sock;
 	struct pollfd fds[2];
-	char buffer[S_READ];
-	//struct ifreq ifr;
+	char buffer[BUFFER_SIZE];
 	struct ifaliasreq ifa;
 	struct sockaddr_in *in;
 
@@ -71,8 +74,8 @@ int main(int argc, char **argv) {
 
 	if (tunnel < 0) err(tunnel, "Error opening tunnel");
 
-	tunnelinfo.baudrate = 9600;		// linespeed 
-	tunnelinfo.mtu = 1500;     		// maximum transmission unit 
+	tunnelinfo.baudrate = TUNNEL_BAUD;	// linespeed 
+	tunnelinfo.mtu = TUNNEL_MTU;   		// maximum transmission unit 
 	// tunnelinfo.type = ;     		// ethernet, tokenring, etc.
 
 	// Configure the tunnel
@@ -118,8 +121,7 @@ int main(int argc, char **argv) {
 
 	// Assign the addresses to the interface
 	i = ioctl(sock, SIOCAIFADDR, &ifa);
-	if (i == -1)
-		warn("SIOCAIFADDR");
+	if (i == -1) warn("SIOCAIFADDR");
 
 
 	// Put the details of the tunnel interface into the fd array for polling
@@ -167,13 +169,16 @@ int main(int argc, char **argv) {
 
 			printf("Network\n");
 
-			do {
-				length = read(tunnel, buffer, S_READ);
+			// tun always promises to give a full packet therefore there is no
+			// need to loop
+			length = read(tunnel, buffer, BUFFER_SIZE);
+			
+			// Encode the buffer with slip
 
-				for (i = 0; i < length; i++) {
-					printf("0x%02x ", buffer[i]);
-				}	
-			} while (length == S_READ);
+
+			for (i = 0; i < length; i++) {
+				printf("0x%02x ", buffer[i]);
+			}	
 
 			printf("\n");
 		}

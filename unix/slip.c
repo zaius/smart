@@ -1,29 +1,37 @@
+#include <sys/types.h>
 #include "slip.h"
-#include "slipchar.h"
 
+size_t slip_encode(char ** dest, char * source, size_t length) {
+    int i, j = 0;
+	// If someone handed a packet with characters that all needed 
+	// escaping, there would be twice as many characters plus a 
+	// SLIP_END character at the start and end.
+	char buffer[length * 2 + 2];
+	unsigned char c;
 
-void slip_send(char * data, int length) {
-    int i, c;
-
-    slip_putc(SLIP_END);
+	*dest = buffer;
+	
+    buffer[j++] = SLIP_END;
 
     for (i = 0; i < length; i++) {
-        c = data[i];
+        c = source[i];
 
         if (c == SLIP_END) {
-            slip_putc(SLIP_ESC);
-            slip_putc(SLIP_ESC_END);
+            buffer[j++] = SLIP_ESC;
+            buffer[j++] = SLIP_ESC_END;
         }
         else if (c == SLIP_ESC) {
-            slip_putc(SLIP_ESC);
-            slip_putc(SLIP_ESC_ESC);
+            buffer[j++] = SLIP_ESC;
+            buffer[j++] = SLIP_ESC_ESC;
         }
         else {
-            slip_putc(c);
+            buffer[j++] = c;
         }
     }
 
-    slip_putc(SLIP_END);
+    buffer[j++] = SLIP_END;
+
+	return j;
 }
 
 
@@ -37,7 +45,7 @@ int slip_poll(char * data, int maxlength) {
 
     // Keep looping while we have characters
     while (1) {
-        slip_getc(&c);
+        // slip_getc(&c);
 
         if (c == SLIP_ESC) {
             previous = c;

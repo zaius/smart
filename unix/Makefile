@@ -1,5 +1,5 @@
 PROG = main
-SRCS = main.c slip.c slipchar.c
+SRCS = main.c slip.c
 
 OBJS = $(SRCS:.c=.o)
 LDFLAGS =
