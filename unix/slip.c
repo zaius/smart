@@ -12,6 +12,8 @@
 #include <string.h> //memcpy
 #include "slip.h"
 
+#include <stdio.h>
+
 #define FALSE 0
 #define TRUE 1
 
@@ -32,7 +34,10 @@ size_t slip_encode(uint8_t * dest, size_t dest_size, uint8_t * source, size_t so
 	for (i = 0; i < source_size; i++) {
 		// If we've hit the limit on the destination, get out
 		// FIXME: I have a feeling there still could be an error with this and the adding of the slip_end character after the loop
-		if (j >= dest_size) return -1;
+		if (j >= dest_size) {
+			printf("buffer out of space\n");
+			return -1;
+		}
 		
 		c = source[i];
 
@@ -71,6 +76,7 @@ PACKET * first = NULL, * pointer = NULL;
 // only be noise
 int inpacket = FALSE;
 int dest_pos = 0;
+int escaped = FALSE;
 
 int slip_add_data(uint8_t * source, size_t length) {
 	int source_pos, count = 0;
@@ -117,10 +123,7 @@ int slip_add_data(uint8_t * source, size_t length) {
 			continue;
 		}
 
-		else if (c == SLIP_ESC) {
-			// If we receive an escape char, read the next char
-			c = source[++source_pos];
-
+		else if (escaped) {
 			if (c == SLIP_ESC_END)
 				c = SLIP_END;
 			else if (c == SLIP_ESC_ESC)
@@ -131,6 +134,13 @@ int slip_add_data(uint8_t * source, size_t length) {
 				// ignored the SLIP_ESC character (recommended by RFC1055)
 				warn("SLIP escape character used to escape nothing!");
 			}
+			escaped = FALSE;
+		}
+		
+		else if (c == SLIP_ESC) {
+			// If we receive an escape char, read the next char
+			escaped = TRUE;
+			continue;
 		}
 		
 		// If we get this far the info is data so add it to the buffer

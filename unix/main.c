@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
 	while (quit == FALSE) {
 		int result = 0;
 
-		result = poll(fds, 2, 500);
+		result = poll(fds, 2, 2500);
 
 		if (result < 0) {
 			// error in poll, warn
@@ -186,6 +186,7 @@ int main(int argc, char **argv) {
 				ready--;
 
 				printf("Decoded: ");
+				decode(dest, length);
 				for (i = 0; i < length; i++) {
 					printf("0x%02x ", dest[i]);
 				}
@@ -203,7 +204,9 @@ int main(int argc, char **argv) {
 			// tun always promises to give a full packet which makes life easy
 			length = read(tunnel, buffer, BUFFER_SIZE);
 			
-			write(tunnel, buffer, length);
+			// write(tunnel, buffer, length);
+			
+			decode(buffer, length);
 			for (i = 0; i < length; i++) {
 				printf("0x%02x ", buffer[i]);
 			}	
@@ -214,8 +217,6 @@ int main(int argc, char **argv) {
 			// SLIP_END character at the start and end.
 			encoded_size = length * 2 + 2;
 			encoded = malloc(encoded_size * sizeof(uint8_t));
-							
-			// decode(buffer, length);
 			
 			// Encode the buffer with slip
 			length = slip_encode(encoded, encoded_size, buffer, length);
