@@ -6,12 +6,11 @@
  * \brief SLIP device driver
  */
 
-#include "conf.h"
+#include <avr/io.h> // UART Register access
 
+#include "conf.h" // Data buffers
 #include "slip.h"
 #include "ipv4.h"
-#include <avr/io.h>
-#include <avr/delay.h>
 
 
 void slip_send() {
@@ -38,48 +37,55 @@ void slip_send() {
 	slip_putc(SLIP_END);
 }
 
-
+uint8_t c, previous;
+uint16_t length = 0;
+int inpacket = FALSE;
 void slip_poll(void) {
-	uint8_t c, previous;
-	uint16_t length = 0;
-
 	// Keep looping while we have characters
 	while (slip_getc(&c)) {
-		if (c == SLIP_ESC) {
-			previous = c;
-			continue;
-		}
-		if (c == SLIP_END) {
-			// End marker found, we have a complete packet
-			// Move the length into the global variable
-			data_length = length;
+		if (c == SLIP_END) { // The framing character
+			if (inpacket) {
+				// End marker found, we have a complete packet
+				// Move the length into the global variable
+				data_length = length;
+				length = 0;
 
-			// Get the version from the packet so we know which network layer
-			// to hand it to
-			uint8_t version = data[0] >> 4;
+				// Get the version from the packet so we know which network layer
+				// to hand it to
+				uint8_t version = data[0] >> 4;
 
-			// TODO: Need to do the whole #ifdef thing and check whether we 
-			// have certain versions compiled in
-			if (version == 4) {
-				ipv4_receive();
+				// TODO: Need to do the whole #ifdef thing and check whether we 
+				// have certain versions compiled in
+				if (version == 4) {
+					ipv4_receive();
+					return;
+				}
+
+				// There was no handler for the specified version
+				log("Invalid version number");
 				return;
 			}
-
-			log("Invalid version number");
-			return;
+			else { // Start of a packet
+				inpacket = TRUE;
+				continue;
+			}
 		}
-
-		// Uh.. i think this is in the wrong place.. how was it working before?
-		// previous = c;
-
-		if (previous == SLIP_ESC) {
+		else if (!inpacket) {
+			// If we're not in a packet, this will just be noise so skip it
+			continue;
+		}
+		else if (previous == SLIP_ESC) {
 			// Previous read byte was an escape byte, so this byte will be
 			// interpreted differently from others.
 			if (c == SLIP_ESC_END)
 				c = SLIP_END;
 			if (c == SLIP_ESC_ESC)
 				c = SLIP_ESC;
-		} 
+		}
+		else if (c == SLIP_ESC) {
+			previous = c;
+			continue;
+		}
 
 		previous = c;
 
@@ -88,6 +94,7 @@ void slip_poll(void) {
 
 		// If we overflow, dump the packet
 		if (length > MAX_DATA_SIZE) {
+			length = 0;
 			return;
 		}
 	}

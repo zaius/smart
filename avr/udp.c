@@ -14,6 +14,8 @@
 
 // For malloc and free
 #include <stdlib.h>
+// debugging
+#include <avr/io.h>
 
 // Application callbacks are held in a singularly linked list of node structs
 typedef struct node NODE;
@@ -29,7 +31,7 @@ NODE * first = NULL;
 
 // Method used for passing packet down to ip for sending
 void udp_send(UDP_HEADER * header) {
-	uint8_t position = 0;
+	uint8_t position = IPV4_HEADER_LENGTH;
 
 	// Source port
 	data[position++] = header->source_port >> 8;
@@ -54,23 +56,24 @@ void udp_send(UDP_HEADER * header) {
 
 // Method used for passing the packet up from the network layer
 void udp_receive(struct ipv4_header * header_in) {
-	uint8_t position = 0;
+	uint8_t position = IPV4_HEADER_LENGTH;
 	uint16_t checksum;
+	NODE * pointer = first;
+	UDP_HEADER header_out;
 
-	UDP_HEADER * header_out = malloc(sizeof(UDP_HEADER));
-	header_out->ip_header = header_in;
+	header_out.ip_header = header_in;
 
 	// Source port
-	header_out->source_port  = data[position++] << 8;
-	header_out->source_port += data[position++];
+	header_out.source_port  = data[position++] << 8;
+	header_out.source_port += data[position++];
 	
 	// Destination port
-	header_out->remote_port  = data[position++] << 8;
-	header_out->remote_port += data[position++];
+	header_out.remote_port  = data[position++] << 8;
+	header_out.remote_port += data[position++];
 
 	// Length
-	header_out->remote_port  = data[position++] << 8;
-	header_out->remote_port  = data[position++];
+	header_out.length  = data[position++] << 8;
+	header_out.length += data[position++];
 	
 	// If there's a checksum, check it
 	checksum  = data[position++] << 8;
@@ -81,13 +84,10 @@ void udp_receive(struct ipv4_header * header_in) {
 	}
 
 	// Pass up to application
-	NODE * pointer = first;
 	while (pointer != NULL) {
-		if (pointer->port == header_out->remote_port) {
+		if (pointer->port == header_out.remote_port) {
 			// We've found an application listening on this port
-			pointer->callback(header_out);
-
-			free(header_out);
+			pointer->callback(&header_out);
 			return;	
 		}
 		pointer = pointer->next;
@@ -95,8 +95,6 @@ void udp_receive(struct ipv4_header * header_in) {
 
 	// No application is listening on that port, dump the packet
 	log("No application listening on that port");
-
-	free(header_out);
 	return;
 }
 
@@ -105,9 +103,12 @@ void udp_receive(struct ipv4_header * header_in) {
 // TODO: error code return values
 void udp_listen(uint16_t port, void (*callback)(UDP_HEADER *udp_header)) {
 	NODE * pointer = first;
+	uint8_t count;
+
 	if (pointer == NULL) {
 		// This is the first application
 		pointer = malloc(sizeof(NODE));
+		first = pointer;
 	}
 	else {
 		// Move to the last item

@@ -94,25 +94,7 @@ int main() {
 	timer_init();
 
 	external_init();
-
-	// Set the local address
-	ip->local_ip[0] = 192;
-	ip->local_ip[1] = 168;
-	ip->local_ip[2] = 68;
-	ip->local_ip[3] = 2;
-
-	// Set the destination address
-	ip->remote_ip[0] = 192;
-	ip->remote_ip[1] = 168;
-	ip->remote_ip[2] = 68;
-	ip->remote_ip[3] = 1;
-
-	ip->protocol = UDP_PROTOCOL;
-
-	udp->source_port = 80;
-	udp->remote_port = 1234;
 	
-
 	// Seed the random number
 	// srand(some counter value?);
 

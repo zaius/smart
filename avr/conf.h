@@ -17,7 +17,7 @@
 /// The baud rate to transmit at on the serial device
 #define BAUD 9600
 
-#define MAX_DATA_SIZE 100
+#define MAX_DATA_SIZE 200
 
 #define SLIP TRUE
 #define IPV4 TRUE

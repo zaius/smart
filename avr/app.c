@@ -10,6 +10,7 @@
 #include "ipv4.h"
 #include "udp.h"
 #include "app.h"
+#include <avr/io.h>
 
 // For malloc and free
 #include <stdlib.h>
@@ -30,6 +31,8 @@ void app_init(void) {
  * app_callback - process an incoming packet
  */
 void app_callback(UDP_HEADER * header_in) {
+	PORTB++;
+	/*
 	// Reset the length
 	data_length = 0;
 
@@ -66,4 +69,5 @@ void app_callback(UDP_HEADER * header_in) {
 
 	free(header_out->ip_header);
 	free(header_out);
+	*/
 }

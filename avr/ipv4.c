@@ -6,17 +6,16 @@
  * \brief Internet Protocol (version 4) implementation
  */
 
-// TODO: Shouldn't need this but have to do that carry flag hack
-#include <avr/io.h> 
+#include <avr/io.h> // Carry flag hack
+#include <stdlib.h> // malloc and free
 
 #include "ipv4.h"
 #include "conf.h"
 #include "udp.h"
 #include "icmp.h"
 
-// For malloc and free
-#include <stdlib.h>
-
+/// The default local IP address
+uint8_t local_ip[4] = { 10, 0, 0, 2 };
 
 
 void ipv4_send(IPV4_HEADER *header) {
@@ -53,16 +52,16 @@ void ipv4_send(IPV4_HEADER *header) {
 	data[position++] = 0;
 
 	// Source address
-	data[position++] = header->local_ip[0];
-	data[position++] = header->local_ip[1];
-	data[position++] = header->local_ip[2];
-	data[position++] = header->local_ip[3];
+	data[position++] = header->source_ip[0];
+	data[position++] = header->source_ip[1];
+	data[position++] = header->source_ip[2];
+	data[position++] = header->source_ip[3];
 
 	// Destination address
-	data[position++] = header->remote_ip[0];
-	data[position++] = header->remote_ip[1];
-	data[position++] = header->remote_ip[2];
-	data[position++] = header->remote_ip[3];
+	data[position++] = header->dest_ip[0];
+	data[position++] = header->dest_ip[1];
+	data[position++] = header->dest_ip[2];
+	data[position++] = header->dest_ip[3];
 
 	// Header Checksum
 	i = position;
@@ -74,16 +73,13 @@ void ipv4_send(IPV4_HEADER *header) {
 		checksum += calc;
 
 		// If the carry bit is set we had overflow - add one to the checksum
-		// if (SREG & 0x01) calc_upper++;
 		if (SREG & 0x01) checksum++;
 	}
-	// checksum += calc_upper;
 	checksum = ~checksum;
 
 	// Insert the checksum into the packet
 	data[10] = checksum >> 8;
 	data[11] = checksum & 0x00ff;
-
 }
 
 void ipv4_receive() {
@@ -116,7 +112,7 @@ void ipv4_receive() {
 	// Drop the packet if the checksum doesn't match
 	if (checksum != 0xffff) {
 		log("Packet failed IPv4 header checksum");
-		return;
+		// return;
 	}
 
 	header = malloc(sizeof(IPV4_HEADER));
@@ -149,25 +145,29 @@ void ipv4_receive() {
 	position += 2;
 
 	// Source address
-	header->local_ip[0] = data[position++];
-	header->local_ip[1] = data[position++];
-	header->local_ip[2] = data[position++];
-	header->local_ip[3] = data[position++];
+	header->source_ip[0] = data[position++];
+	header->source_ip[1] = data[position++];
+	header->source_ip[2] = data[position++];
+	header->source_ip[3] = data[position++];
 
 	// Destination address
-	header->remote_ip[0] = data[position++];
-	header->remote_ip[1] = data[position++];
-	header->remote_ip[2] = data[position++];
-	header->remote_ip[3] = data[position++];
+	header->dest_ip[0] = data[position++];
+	header->dest_ip[1] = data[position++];
+	header->dest_ip[2] = data[position++];
+	header->dest_ip[3] = data[position++];
 
+	// Drop any packets not addressessed to this node
+	if (header->dest_ip[0] != local_ip[0] || 
+	    header->dest_ip[1] != local_ip[1] ||
+	    header->dest_ip[2] != local_ip[2] ||
+	    header->dest_ip[3] != local_ip[3])
+		return;
 
 	// Pass the packet off
 	// TODO: Need to do the whole #ifdef thing and check whether we 
 	// have certain versions protocols in
 	if (header->protocol == UDP_PROTOCOL)
         udp_receive(header);
-	// else if (header->protocol == ICMP_PROTOCOL)
-		// icmp_receive(header);
 	else
 		log("No valid transport layer, dropping packet");
 
