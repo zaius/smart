@@ -186,6 +186,8 @@ int main(int argc, char **argv) {
 				printf("0x%02x ", encoded[i]);
 			}
 			printf("\n");
+
+			write(serial, encoded, length);
 		}
 	}
 
