@@ -26,6 +26,7 @@
 // Local includes
 #include "main.h"
 #include "slip.h"
+#include "decode.h"
 
 // stuff for inet_addr
 #include <netinet/in.h>
@@ -35,7 +36,7 @@
 
 // Amount to read on a serial read
 #define S_READ 255
-#define SERIAL_DEV "/dev/cuaa0"
+#define SERIAL_DEV "/dev/cuaa1"
 
 #define TUNNEL_DEV "/dev/tun2"
 #define TUNNEL_IF "tun2"
@@ -97,7 +98,7 @@ int main(int argc, char **argv) {
 	if (i == -1) warn("TUNSIFMODE");
 
 	// Prepend packets with the destination address
-	i = 1;
+	i = 0;
 	i = ioctl(tunnel, TUNSLMODE, &i);
 	if (i == -1) warn("TUNSLMODE");
 
@@ -202,6 +203,7 @@ int main(int argc, char **argv) {
 			// tun always promises to give a full packet which makes life easy
 			length = read(tunnel, buffer, BUFFER_SIZE);
 			
+			write(tunnel, buffer, length);
 			for (i = 0; i < length; i++) {
 				printf("0x%02x ", buffer[i]);
 			}	
@@ -213,11 +215,14 @@ int main(int argc, char **argv) {
 			encoded_size = length * 2 + 2;
 			encoded = malloc(encoded_size * sizeof(uint8_t));
 							
+			// decode(buffer, length);
+			
 			// Encode the buffer with slip
 			length = slip_encode(encoded, encoded_size, buffer, length);
-			if (length != encoded_size)
+			if (length < 0)
 				warn("Encoded buffer too small");
 				
+			printf("Encoded: ");
 			for (i = 0; i < length; i++) {
 				printf("0x%02x ", encoded[i]);
 			}

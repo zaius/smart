@@ -1,9 +1,9 @@
 PROG = main
-SRCS = main.c slip.c
+SRCS = main.c slip.c decode.c
 
 OBJS = $(SRCS:.c=.o)
 LDFLAGS =
-CFLAGS = -Wall -g
+CFLAGS = -Wall -Werror -g
 
 
 # TARGETS

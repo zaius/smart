@@ -32,7 +32,7 @@ size_t slip_encode(uint8_t * dest, size_t dest_size, uint8_t * source, size_t so
 	for (i = 0; i < source_size; i++) {
 		// If we've hit the limit on the destination, get out
 		// FIXME: I have a feeling there still could be an error with this and the adding of the slip_end character after the loop
-		if (j >= dest_size) return j;
+		if (j >= dest_size) return -1;
 		
 		c = source[i];
 
@@ -145,9 +145,13 @@ int slip_add_data(uint8_t * source, size_t length) {
 	}
 
 	// We've added all the data, count the number of ready packets
+	if (first == NULL) return 0;
+
 	pointer = first;
-	while (pointer->next != NULL)
+	while (pointer->next != NULL) {
+		pointer = pointer->next;
 		count++;
+	}
 
 	// If we're halfway through a packet, it doesn't count as complete
 	if (inpacket) return count;
