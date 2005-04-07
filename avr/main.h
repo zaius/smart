@@ -33,5 +33,3 @@ void external_init(void);
  */
 int main(void);
 
-uint8_t str_cpy(char * source, uint8_t length, char * destination, uint8_t position);
-

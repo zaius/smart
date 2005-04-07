@@ -18,7 +18,14 @@
 #include "ipv4.h"
 #include "udp.h"
 #include "slip.h"
+
+#if defined echo
 #include "echo.h"
+#elif defined light
+#include "light.h"
+#elif defined button
+#include "button.h"
+#endif
 
 uint8_t counter;
 
@@ -46,7 +53,7 @@ void timer_init() {
 	TIMSK = _BV(TOIE0);
 
 	// TCCR0 - Timer/Counter0 Control Register
-	// Bits 2,1,0 û CS12, CS11, CS10: Clock Select1, Bits 2, 1 and 0
+	// Bits 2,1,0 - CS12, CS11, CS10: Clock Select1
 	// Setting CS12 and CS10 gives us a prescaler of 1024 clock cycles
 	TCCR0 = _BV(CS02) | _BV(CS00);
 }
@@ -74,15 +81,18 @@ int main() {
 	// Initialise the UART for serial communication
 	uart_init();
 	
-	echo_init();
-
 	// Initialise the timer for periodic checks
 	timer_init();
 
 	external_init();
-	
-	// Seed the random number
-	// srand(some counter value?);
+
+#if defined echo
+	echo_init();
+#elif defined light
+	light_init();
+#elif defined button
+	button_init();
+#endif
 
 	// Enable Interrupts
 	sei();
@@ -97,44 +107,8 @@ int main() {
 SIGNAL(SIG_OVERFLOW0) {
 	// Send every 15 overflows - approx equals 1 second
 	if (counter > 15) {
-		/* Old method
-		uint8_t position = 0;
 
-		data_length = 15;
-
-		uint8_t message[data_length];
-		sprintf(message, "rand: %i\n\r", rand());
-
-		ip->length = data_length + IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH;
-		udp->length = data_length + UDP_HEADER_LENGTH;
-
-		position = add_ipv4_header(ip, buffer, position);
-		position = add_udp_header(udp, buffer, position);
-
-		position = str_cpy(message, data_length, buffer, position);
-
- 		slip_send(buffer, position);
-
-
-		counter = 0;
-		PORTB = ~PORTB;
-		*/
 	}
 	else 
 		counter++;
-}
-
-SIGNAL(SIG_INTERRUPT0) {
-	// eeprom_write_byte (uint8_t *addr, uint8_t val);
-	// Timer/Counter Register – TCNT0
-	srand(TCNT0);
-}
-
-uint8_t str_cpy(char * source, uint8_t length, char * destination, uint8_t position) {
-	uint8_t i = 0;
-	while (i < length) {
-		destination[position++] = source[i++];
-	}
-
-	return position;
 }

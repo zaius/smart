@@ -47,6 +47,8 @@ void slip_poll(void) {
 			if (inpacket) {
 				uint8_t version;
 
+				inpacket = FALSE;
+
 				// End marker found, we have a complete packet
 				// Move the length into the global variable
 				data_length = length;

@@ -1,6 +1,7 @@
 # Targets:
 #
 # make all = Make software.
+# We assume 
 #
 # make clean = Clean out built project files.
 #
@@ -12,11 +13,11 @@
 # make program = Download the hex file to the device, using avrdude.  Please
 #                customize the avrdude settings below first!
 #
-# make filename.s = Just compile filename.c into the assembler code only
-#
-# To rebuild project do "make clean" then "make all".
-#
 
+# The target application can be decided on the command line with make:
+# make TARGET=application
+# Or it can be defined here
+# TARGET = light
 
 # MCU name
 MCU = atmega16
@@ -24,22 +25,18 @@ MCU = atmega16
 # Output format. (can be srec, ihex, binary)
 FORMAT = ihex
 
-# Target file name (without extension).
-TARGET = main
+# Default target if none is specified on the command line
+DEFAULT = echo
 
+# Check we have a target
+ifndef TARGET
+$(warning 'No target defined, assuming $(DEFAULT)')
+TARGET = $(DEFAULT)
+endif
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = $(TARGET).c ipv4.c udp.c slip.c echo.c conf.c
+SRC = $(TARGET).c ipv4.c udp.c slip.c conf.c main.c
 
-
-# List Assembler source files here.
-# Make them always end in a capital .S.  Files ending in a lowercase .s
-# will not be considered source files but generated files (assembler
-# output from the compiler), and will be deleted upon "make clean"!
-# Even though the DOS/Win* filesystem matches both .s and .S the same,
-# it will preserve the spelling of the filenames, and gcc itself does
-# care about how the name is spelled on its command-line.
-ASRC = 
 
 
 
@@ -53,19 +50,12 @@ OPT = s
 # AVR (extended) COFF requires stabs, plus an avr-objcopy run.
 DEBUG = stabs
 
-# List any extra directories to look for include files here.
-#     Each directory must be seperated by a space.
-EXTRAINCDIRS = 
-
 # Compiler flag to set the C Standard level.
-# c89   - "ANSI" C
-# gnu89 - c89 plus GCC extensions
-# c99   - ISO C99 standard (not yet fully implemented)
 # gnu99 - c99 plus GCC extensions
 CSTANDARD = -std=gnu99
 
 # Place -D or -U options here
-CDEFS =
+CDEFS = -D $(TARGET)
 
 # Place -I options here
 CINCS =
