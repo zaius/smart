@@ -1,5 +1,21 @@
+/*
+ * Copyright (c) 2005 David Kelso <david@kelso.id.au>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 /**
- * Internet Zero - AVR Implementation
+ * Smart Framework - AVR Implementation
  * 
  * \file avr/slip.h
  * \author David Kelso - david@kelso.id.au
@@ -16,6 +32,10 @@
 /// Character used to replace a SLIP_ESC character in the data
 #define SLIP_ESC_ESC        0xDD
 
+/// The maximum number of times we should retry before giving up on a
+/// colliding packet
+#define MAX_RETRIES 10
+
 
 // Prototypes
 
@@ -24,7 +44,7 @@
  * Send a packet from the data buffer over the slip device.
  * Blocks until the entire packet is finished
  */
-void slip_send(void);
+uint8_t slip_send(void);
 
 /**
  * slip_poll - 
@@ -33,6 +53,8 @@ void slip_send(void);
  */
 void slip_poll(void);
 
+void msleep(uint8_t);
+
 /**
  * slip_getc - 
  * Get a character from the serial device
@@ -40,11 +62,11 @@ void slip_poll(void);
  * will be set to point to that character
  * \return 1 if there was a character, 0 if nothing was available
  */
-uint8_t slip_getc(uint8_t *c);
+uint8_t slip_getc(uint8_t *);
 
 /**
  * slip_putc -
  * Put a character from slip on to the serial device
  * \param c the character to send on the device
  */
-void    slip_putc(uint8_t  c);
+uint8_t slip_putc(uint8_t);

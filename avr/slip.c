@@ -1,5 +1,21 @@
+/*
+ * Copyright (c) 2005 David Kelso <david@kelso.id.au>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 /**
- * Internet Zero - AVR Implementation
+ * Smart Framework - AVR Implementation
  * 
  * \file avr/slip.c
  * \author David Kelso - david@kelso.id.au
@@ -7,42 +23,77 @@
  */
 
 #include <avr/io.h> // UART Register access
-
+#include <stdlib.h> // random
+#include <avr/delay.h>
 #include "conf.h" // Data buffers
 #include "slip.h"
 #include "ipv4.h"
 
+uint8_t retries = 0;
+uint8_t slip_send() {
+	uint8_t i, c, collision = FALSE;
 
-void slip_send() {
-	uint8_t i, c;
+	if (slip_putc(SLIP_END)) collision = TRUE;
 
-	slip_putc(SLIP_END);
-
-	for (i = 0; i < data_length; i++) {
+	for (i = 0; !collision && i < data_length; i++) {
 		c = data[i];
 
 		if (c == SLIP_END) {
-			slip_putc(SLIP_ESC);
-			slip_putc(SLIP_ESC_END);
+			if (slip_putc(SLIP_ESC)) collision = TRUE;
+			if (slip_putc(SLIP_ESC_END)) collision = TRUE;
 		}
 		else if (c == SLIP_ESC) {
-			slip_putc(SLIP_ESC);
-			slip_putc(SLIP_ESC_ESC);
+			if (slip_putc(SLIP_ESC)) collision = TRUE;
+			if (slip_putc(SLIP_ESC_ESC)) collision = TRUE;
 		}
 		else {
-			slip_putc(c);
+			if (slip_putc(c)) collision = TRUE;
 		}
 	}
 
-	slip_putc(SLIP_END);
+	if (!collision)
+		if (slip_putc(SLIP_END)) collision = TRUE;
+
+	// If there has been no collision, the packet has been transmitted fine
+	if (!collision) return 0;
+
+	retries++;
+
+	// if we've had more than MAX_RETRIES, give up; otherwise wait a random
+	// time and run slip_send again
+	if (retries > MAX_RETRIES) return -1;
+	
+
+	// The maximal possible delay is 262.14 ms / F_CPU in MHz.
+	// 262.14 / 3.6864 = 71.11 ms
+	msleep(random() * retries);
+	return slip_send();
+}
+
+void msleep(uint8_t delay) {
+	uint8_t i = 0;
+	// 4 operations per cycle
+	// max 65536 cycles
+	// F_CPU / 1000 operations per ms
+
+	for (i = 0; i < delay; i++) 
+		_delay_loop_2(F_CPU / 1000 / 4);
 }
 
 uint8_t c, previous;
 uint16_t length = 0;
 int inpacket = FALSE;
+int seeded = FALSE;
 void slip_poll(void) {
 	// Keep looping while we have characters
 	while (slip_getc(&c)) {
+
+		// If it hasn't happened yet, seed the random number generator
+		if (!seeded) {
+			srandom(TCNT0);
+			seeded = TRUE;
+		}
+
 		if (c == SLIP_END) { // The framing character
 			if (inpacket) {
 				uint8_t version;
@@ -125,10 +176,20 @@ uint8_t slip_getc(uint8_t *c) {
 }
 
 
-void slip_putc(uint8_t c) {
+uint8_t slip_putc(uint8_t c) {
+	uint8_t received;
+
 	// Wait until the buffer is empty
 	loop_until_bit_is_set(UCSRA, UDRE);
 
 	// Load the character into the buffer
 	UDR = c;
+
+	// Read the character and check they're the same
+	//.while(slip_getc(&received));
+
+	msleep(250);
+
+	if (received == c) return 0;
+	else return -1;
 }

@@ -1,5 +1,21 @@
+/*
+ * Copyright (c) 2005 David Kelso <david@kelso.id.au>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 /**
- * Internet Zero - AVR Implementation
+ * Smart Framework - AVR Implementation
  * 
  * \file avr/ipv4.c
  * \author David Kelso - david@kelso.id.au
@@ -16,7 +32,18 @@
 
 /// The default local IP address
 uint8_t local_ip[4] = { 10, 0, 0, 2 };
+/// The default broadcast address
+uint8_t bcast_ip[4] = { 10, 0, 0, 255 };
 
+
+uint8_t compare_ip(uint8_t * one, uint8_t * two) {
+	if (one[0] != two[0]) return FALSE;
+	if (one[1] != two[1]) return FALSE;
+	if (one[2] != two[2]) return FALSE;
+	if (one[3] != two[3]) return FALSE;
+
+	return TRUE;
+}
 
 void ipv4_send(IPV4_HEADER *header) {
 	uint8_t position = 0, i; 
@@ -154,11 +181,9 @@ void ipv4_receive() {
 	header.dest_ip[2] = data[position++];
 	header.dest_ip[3] = data[position++];
 
-	// Drop any packets not addressessed to this node
-	if (header.dest_ip[0] != local_ip[0] || 
-	    header.dest_ip[1] != local_ip[1] ||
-	    header.dest_ip[2] != local_ip[2] ||
-	    header.dest_ip[3] != local_ip[3])
+	// Drop any packets not addressessed to this node or the broadcast address
+	if (!compare_ip(header.dest_ip, local_ip) ||
+		!compare_ip(header.dest_ip, bcast_ip))
 		return;
 	
 	// Pass the packet off
