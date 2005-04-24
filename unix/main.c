@@ -1,5 +1,21 @@
+/*
+ * Copyright (c) 2005 David Kelso <david@kelso.id.au>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 /**
- * Internet Zero - Unix Gateway
+ * Smart Framework - Unix Gateway
  * 
  * \file unix/main.c
  * \author David Kelso - david@kelso.id.au
@@ -16,12 +32,15 @@
 
 #include <fcntl.h>		// open
 #include <stdio.h>		// printf
-#include <stdlib.h>		// malloc
+#include <stdlib.h>		// malloc, random
 #include <unistd.h>		// write
 #include <poll.h>		// poll
 #include <signal.h>		// signals
 #include <err.h>		// err/warn
 #include <string.h>		// strlcpy
+
+#include <time.h>		// time
+#include <unistd.h>		// usleep
 
 // Local includes
 #include "main.h"
@@ -50,6 +69,8 @@
 #define TUNNEL_INDEX 0
 #define SERIAL_INDEX 1
 
+#define MAX_RETRIES 10
+
 // Signal handler for CTRL-C
 volatile sig_atomic_t quit = FALSE;
 void sigterm(int signal) {
@@ -63,6 +84,10 @@ int main(int argc, char **argv) {
 	uint8_t buffer[BUFFER_SIZE];
 	struct ifaliasreq ifa;
 	struct sockaddr_in *in;
+	int retries = 0;
+
+	// Seed the random number generator
+	srandom(time(NULL));
 
 	// Set up signal handlers
 	signal(SIGINT, sigterm);
@@ -170,7 +195,7 @@ int main(int argc, char **argv) {
 				printf("0x%02x ", buffer[i]);
 			}	
 			printf("\n");
-			
+
 
 			// Put the data into the slip queue and read off the number of 
 			// ready packets
@@ -182,7 +207,9 @@ int main(int argc, char **argv) {
 				uint8_t dest[dest_size];
 
 				length = slip_retrieve(dest, dest_size);
+
 				write(tunnel, dest, length);
+
 				ready--;
 
 				printf("Decoded: ");
@@ -203,26 +230,26 @@ int main(int argc, char **argv) {
 
 			// tun always promises to give a full packet which makes life easy
 			length = read(tunnel, buffer, BUFFER_SIZE);
-			
+
 			// write(tunnel, buffer, length);
-			
+
 			decode(buffer, length);
 			for (i = 0; i < length; i++) {
 				printf("0x%02x ", buffer[i]);
 			}	
 			printf("\n");
-			
-		    // If someone handed a packet with characters that all needed
+
+			// If someone handed a packet with characters that all needed
 			// escaping, there would be twice as many characters plus a
 			// SLIP_END character at the start and end.
 			encoded_size = length * 2 + 2;
 			encoded = malloc(encoded_size * sizeof(uint8_t));
-			
+
 			// Encode the buffer with slip
 			length = slip_encode(encoded, encoded_size, buffer, length);
 			if (length < 0)
 				warn("Encoded buffer too small");
-				
+
 			printf("Encoded: ");
 			for (i = 0; i < length; i++) {
 				printf("0x%02x ", encoded[i]);
@@ -230,12 +257,35 @@ int main(int argc, char **argv) {
 			printf("\n");
 
 			// Write the packet to the serial device
-			write(serial, encoded, length);
-			
+			// write(serial, encoded, length);
+			for (i = 0; i < length; i++) {
+				uint8_t received;
+				// Write the character
+				write(serial, encoded + i, 1);
+				// Because the transmit and receive wires are tied, we 
+				// should receive the same character as we sent
+				read(serial, &received, 1);
+
+				printf("0x%x\t0x%x\n", encoded[i], received);
+
+				// If they don't match, we've had a collision
+				if (encoded[i] != received) {
+					printf("Collision\n");
+
+					retries++;
+					if (retries > MAX_RETRIES) break;
+
+					// increase the wait time each time
+					usleep(random() * retries);
+					i = 0;
+				}
+
+				// Reset the retries in case we've had collisions
+				retries = 0;
+			}
 			free(encoded);
 		}
 	}
-
 	// We must have received a signal, tidy up and exit
 	printf("Exiting...\n");
 	close(serial);

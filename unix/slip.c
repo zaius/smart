@@ -1,5 +1,21 @@
+/*
+ * Copyright (c) 2005 David Kelso <david@kelso.id.au>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 /**
- * Internet Zero - Unix Gateway
+ * Smart Framework - Unix Gateway
  * 
  * \file unix/slip.c
  * \author David Kelso - david@kelso.id.au
@@ -27,35 +43,28 @@ size_t slip_encode(uint8_t * dest, size_t dest_size, uint8_t * source, size_t so
 	uint8_t c;
 
 	// Zero sized buffers can break things
-	if (dest_size < 1 || source_size < 1) return 0;
+	if (dest_size < 1 || dest == NULL || source = NULL) return 0;
 
-	dest[j++] = SLIP_END;
+	dest[0] = SLIP_END;
 
 	for (i = 0; i < source_size; i++) {
-		// If we've hit the limit on the destination, get out
-		// FIXME: I have a feeling there still could be an error with this and the adding of the slip_end character after the loop
-		if (j >= dest_size) {
-			printf("buffer out of space\n");
-			return -1;
-		}
-		
 		c = source[i];
 
 		if (c == SLIP_END) {
-			dest[j++] = SLIP_ESC;
-			dest[j++] = SLIP_ESC_END;
+			if (++j < dest_size) dest[j] = SLIP_ESC;
+			if (++j < dest_size) dest[j] = SLIP_ESC_END;
 		}
 		else if (c == SLIP_ESC) {
-			dest[j++] = SLIP_ESC;
-			dest[j++] = SLIP_ESC_ESC;
+			if (++j < dest_size) dest[j] = SLIP_ESC;
+			if (++j < dest_size) dest[j] = SLIP_ESC_ESC;
 		}
 		else {
-			dest[j++] = c;
+			if (++j < dest_size) dest[j] = c;
 		}
 		
 	}
 
-	dest[j++] = SLIP_END;
+	if (++j < dest_size) dest[j] = SLIP_END;
 
 	return j;
 }
