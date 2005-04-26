@@ -36,7 +36,7 @@ typedef struct udp_header UDP_HEADER;
 struct udp_header {
 	IPV4_HEADER * ip_header;
 	uint16_t source_port;
-	uint16_t remote_port;
+	uint16_t dest_port;
 	uint16_t length;
 };
 

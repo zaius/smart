@@ -54,8 +54,8 @@ void udp_send(UDP_HEADER * header) {
 	data[position++] = header->source_port & 0x00ff;
 	
 	// Destination port
-	data[position++] = header->remote_port >> 8;
-	data[position++] = header->remote_port & 0x00ff;
+	data[position++] = header->dest_port >> 8;
+	data[position++] = header->dest_port & 0x00ff;
 
 	// Length
 	data[position++] = header->length >> 8;
@@ -84,8 +84,8 @@ void udp_receive(struct ipv4_header * header_in) {
 	header_out.source_port += data[position++];
 	
 	// Destination port
-	header_out.remote_port  = data[position++] << 8;
-	header_out.remote_port += data[position++];
+	header_out.dest_port  = data[position++] << 8;
+	header_out.dest_port += data[position++];
 
 	// Length
 	header_out.length  = data[position++] << 8;
@@ -101,7 +101,7 @@ void udp_receive(struct ipv4_header * header_in) {
 
 	// Pass up to application
 	while (pointer != NULL) {
-		if (pointer->port == header_out.remote_port) {
+		if (pointer->port == header_out.dest_port) {
 			// We've found an application listening on this port
 			pointer->callback(&header_out);
 			return;	
