@@ -41,8 +41,9 @@
 #define NUM_SERVICES 2
 
 #define BOOL 1
-#define INT8 2
-#define UINT8 3
+#define STRING 2
+#define INT8 3
+#define UINT8 4
 
 struct service {
 	uint8_t type;
@@ -203,6 +204,12 @@ void light_callback(UDP_HEADER * header_in) {
 }
 
 SIGNAL(SIG_INTERRUPT0) {
+	struct destination * pointer = message_list;
+	while (pointer != NULL) {
+
+
+		pointer = pointer->next;
+	}
 }
 
 // Starts at the struct pointed to by pointer and frees 
