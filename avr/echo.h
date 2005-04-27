@@ -23,7 +23,7 @@
  */
 
 /// The port the application will listen on
-#define PORT 1337
+#define PORT 1234
 
 // Prototypes
 

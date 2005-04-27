@@ -27,8 +27,4 @@
 void turn_exec(char *, uint8_t);
 void toggle_exec(char *, uint8_t);
 
-struct service 
-	turn_service = {CONSUMER, 4, "turn", &turn_exec, 1, {BOOL}},
-	toggle_service = {CONSUMER, 6, "toggle", &toggle_exec, 0, {}};
-
-struct service * services[NUM_SERVICES] = {&turn_service, &toggle_service};
+extern struct service * services[NUM_SERVICES];

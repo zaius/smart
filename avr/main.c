@@ -37,7 +37,9 @@
 
 #if defined echo
 #include "echo.h"
-#elif defined light
+#endif
+
+#if defined light
 #include "light.h"
 #elif defined button
 #include "button.h"
@@ -104,11 +106,9 @@ int main() {
 
 #if defined echo
 	echo_init();
-#elif defined light
-	light_init();
-#elif defined button
-	button_init();
 #endif
+
+	service_init();
 
 	// Enable Interrupts
 	sei();

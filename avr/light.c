@@ -22,6 +22,22 @@
  * \brief Functions to control a light
  */
 
+
+#include "conf.h"
+#include "ipv4.h"
+#include "udp.h"
+#include "light.h"
+#include "service.h"
+
+#include <avr/io.h>
+
+struct service 
+	turn_service = {CONSUMER, 4, "turn", &turn_exec, 1, {BOOL}},
+	toggle_service = {CONSUMER, 6, "toggle", &toggle_exec, 0, {}};
+
+struct service * services[NUM_SERVICES] = {&turn_service, &toggle_service};
+
+
 void toggle_exec(char * args, uint8_t length) {
 	PORTB = ~PORTB;
 }

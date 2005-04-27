@@ -25,6 +25,7 @@
 #include "conf.h"
 #include "ipv4.h"
 #include "udp.h"
+#include "service.h"
 #include "light.h"
 #include <avr/io.h>
 
@@ -35,34 +36,34 @@
 #include <stdlib.h> // malloc
 #include <string.h> // memcmp
 
-#define CONSUMER 1
-#define PRODUCER 2
-
-
-// The list of devices to message on producing a service
+/*
+ * The device stores a list of all the devices (and their corresponding
+ * services) that need to be informed when a production service fires.
+ * This destination pointer points to the first in a list of all the
+ * destinations.
+ */
 struct destination * message_list;
-// The temporary list used when programming
+/* Because the device needs to remember all the service broadcasts it hears
+ * on the network (so it can later transmit to them), the device needs
+ * somewhere to store them. This could be the message_list however if a
+ * device doesn't have it's programming button pressed before the end of 
+ * programming mode it needs to keep its original list. Therefore we can
+ * use a temporary list instead and free the relevant one when the time comes.
+ */
 struct destination * temp_message_list;
 
 
-// Whether the device is in programming mode
+// Whether the device is in programming mode. If yes, it needs to track all
+// the service broadcasts that get sent to it.
 uint8_t program_mode = FALSE;
 // Whether the device's program switch has been pushed
 uint8_t program_pushed = FALSE;
 
 /*
- * light_init - initialise the application
+ * service_init - initialise the application
  */
-void light_init(void) {
-	// uint8_t * addr = 0, i, j, num_messages;
-	// struct destination * pointer = NULL, * previous = NULL;
-
-	/*
-	if (udp_listen(PORT, &light_callback)) {
-		log("port in use");
-	}
-	*/
-	udp_listen(PORT, &light_callback);
+void service_init(void) {
+	udp_listen(PORT, &service_callback);
 
 	// Grab any message list info out of the eeprom
 	load(message_list);
@@ -71,7 +72,7 @@ void light_init(void) {
 /*
  * light_callback - process an incoming packet
  */
-void light_callback(UDP_HEADER * header_in) {
+void service_callback(UDP_HEADER * header_in) {
 	uint8_t * message = &data[IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH];
 	uint16_t message_size = header_in->length - UDP_HEADER_LENGTH;
 
@@ -172,9 +173,10 @@ void load(struct destination * pointer) {
 
 	num_messages = eeprom_read_byte(addr++);
 	for (i = 0; i < num_messages; i++) {
+		uint8_t * name, length;
 		pointer = malloc(sizeof(struct destination));
 
-		pointer->index = eeprom_read_byte(addr++);
+		// Store the ip address and udp port
 		pointer->address[0] = eeprom_read_byte(addr++);
 		pointer->address[1] = eeprom_read_byte(addr++);
 		pointer->address[2] = eeprom_read_byte(addr++);
@@ -182,9 +184,26 @@ void load(struct destination * pointer) {
 		pointer->port = eeprom_read_byte(addr++) << 8;
 		pointer->port += eeprom_read_byte(addr++);
 
+		// The name was all that was stored - look up the service for the rest
+		length = eeprom_read_byte(addr++);
+		name = malloc(sizeof(uint8_t) * length);
+		for (j = 0; j < length; j++) {
+			name[j] = eeprom_read_byte(addr++);
+		}
+		for (j = 0; j < NUM_SERVICES; j++) {
+			if (!memcmp(name, services[j], length)) {
+				pointer->source_service = services[j];
+				break;
+			}
+		}
+		// Maybe should check that we weren't given a dud service from memory
+		// or the local services haven't changed... not much can be done
+		// about it though.
+
+
 		pointer->dest_service.name_length = eeprom_read_byte(addr++);
 		for (j = 0; j < pointer->dest_service.name_length; j++) {
-			// This has got to be wrong
+			// This has got to be wrong - putting data into an uninitialised destination
 			pointer->dest_service.name[j] = eeprom_read_byte(addr++);
 		}
 
@@ -211,13 +230,19 @@ void save(struct destination * pointer) {
 		uint8_t j;
 		count++;
 
-		eeprom_write_byte(addr++, pointer->index);
 		eeprom_write_byte(addr++, pointer->address[0]);
 		eeprom_write_byte(addr++, pointer->address[1]);
 		eeprom_write_byte(addr++, pointer->address[2]);
 		eeprom_write_byte(addr++, pointer->address[3]);
 		eeprom_write_byte(addr++, pointer->port >> 8);
 		eeprom_write_byte(addr++, pointer->port & 0x00ff);
+
+		// Write the source service's name to eeprom - name is all we need to
+		// reliably find it again.
+		eeprom_write_byte(addr++, pointer->source_service->name_length);
+		for (j = 0; j < pointer->source_service->name_length; j++) {
+			eeprom_write_byte(addr++, pointer->source_service->name[j]);
+		}
 
 		eeprom_write_byte(addr++, pointer->dest_service.name_length);
 		for (j = 0; j < pointer->dest_service.name_length; j++) {

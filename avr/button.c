@@ -26,9 +26,17 @@
 #include "ipv4.h"
 #include "udp.h"
 #include "button.h"
+#include "service.h"
 
 #include <avr/signal.h>
 #include <avr/interrupt.h>
+
+struct service 
+	// turn_service = {PRODUCER, 4, "turn", NULL, 1, {BOOL}};
+	toggle_service = {PRODUCER, 6, "toggle", NULL, 0, {}};
+
+struct service * services[NUM_SERVICES] = {&toggle_service};
+
 
 SIGNAL(SIG_INTERRUPT0) {
 	struct destination * pointer = message_list;

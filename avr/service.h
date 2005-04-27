@@ -30,6 +30,8 @@
 #define INT8 3
 #define UINT8 4
 
+#define CONSUMER 1
+#define PRODUCER 2
 
 struct service {
 	uint8_t type;
@@ -52,13 +54,13 @@ struct destination {
 // Prototypes
 
 /**
- * light_init - 
+ * service_init - 
  * Run time initialisation of the application
  */
 void service_init(void);
 
 /**
- * light_callback - 
+ * service_callback - 
  * The function to call when a packet arrives for this application
  * \param header_in A UDP header with all the data contained in the packet
  */

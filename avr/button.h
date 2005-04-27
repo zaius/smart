@@ -15,7 +15,7 @@
  */
 
 /**
- * Internet Zero - AVR Implementation
+ * Smart Framework - AVR Implementation
  * 
  * \file avr/button.h
  * \author David Kelso - david@kelso.id.au
@@ -24,8 +24,4 @@
 
 #define NUM_SERVICES 1
 
-struct service 
-	// turn_service = {PRODUCER, 4, "turn", NULL, 1, {BOOL}};
-	toggle_service = {PRODUCER, 6, "toggle", NULL, 0, {}};
-
-struct service * services[NUM_SERVICES] = {&toggle_service};
+extern struct service * services[NUM_SERVICES];
