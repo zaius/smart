@@ -41,7 +41,7 @@ MCU = atmega16
 FORMAT = ihex
 
 # Default target if none is specified on the command line
-DEFAULT = echo
+DEFAULT = light
 
 # Check we have a target
 ifndef TARGET
@@ -50,7 +50,7 @@ TARGET = $(DEFAULT)
 endif
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = $(TARGET).c ipv4.c udp.c slip.c conf.c main.c
+SRC = $(TARGET).c ipv4.c udp.c slip.c conf.c main.c service.c
 
 
 

@@ -17,9 +17,9 @@
 /**
  * Smart Framework - AVR Implementation
  * 
- * \file avr/light.c
+ * \file avr/service.c
  * \author David Kelso - david@kelso.id.au
- * \brief Application to control a light
+ * \brief Application to coordinate services of smart devices
  */
 
 #include "conf.h"
@@ -37,56 +37,6 @@
 
 #define CONSUMER 1
 #define PRODUCER 2
-
-#define NUM_SERVICES 2
-
-#define BOOL 1
-#define STRING 2
-#define INT8 3
-#define UINT8 4
-
-struct service {
-	uint8_t type;
-	uint8_t name_length;
-	char * name;
-	void (*on_exec)(char * args, uint8_t length);
-	uint8_t arg_length;
-	uint8_t arguments[];
-};
-
-struct destination {
-	uint8_t index; // Index of the producer service to send to this destination on
-	uint8_t address[4]; // IP address of the destination
-	uint16_t port; // Port of the destination
-	struct service dest_service;
-	struct destination * next; // The next destination in the message list
-};
-
-void erase(struct destination *);
-void load(struct destination *);
-void save(struct destination *);
-void turn_exec(char *, uint8_t);
-void toggle_exec(char *, uint8_t);
-
-struct service 
-	turn_service = {CONSUMER, 4, "turn", &turn_exec, 1, {BOOL}},
-	toggle_service = {CONSUMER, 6, "toggle", &toggle_exec, 0, {}};
-
-struct service * services[NUM_SERVICES] = {&turn_service, &toggle_service};
-
-void toggle_exec(char * args, uint8_t length) {
-	PORTB = ~PORTB;
-}
-
-void turn_exec(char * args, uint8_t length) {
-	if (!memcmp(args, "true", length))
-		PORTB = 0xff;
-	else if (!memcmp(args, "false", length))
-		PORTB = 0x00;
-	else
-		log("Bad turn argument");
-}
-
 
 
 // The list of devices to message on producing a service
@@ -203,14 +153,6 @@ void light_callback(UDP_HEADER * header_in) {
 	}
 }
 
-SIGNAL(SIG_INTERRUPT0) {
-	struct destination * pointer = message_list;
-	while (pointer != NULL) {
-
-
-		pointer = pointer->next;
-	}
-}
 
 // Starts at the struct pointed to by pointer and frees 
 // all subsequent destinations in the list

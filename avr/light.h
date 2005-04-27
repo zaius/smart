@@ -15,17 +15,20 @@
  */
 
 /**
- * Internet Zero - AVR Implementation
+ * Smart Framework - AVR Implementation
  * 
- * \file avr/button.h
+ * \file avr/light.h
  * \author David Kelso - david@kelso.id.au
- * \brief Header for switch/button functions
+ * \brief Header for light control functions
  */
 
-#define NUM_SERVICES 1
+#define NUM_SERVICES 2
+
+void turn_exec(char *, uint8_t);
+void toggle_exec(char *, uint8_t);
 
 struct service 
-	// turn_service = {PRODUCER, 4, "turn", NULL, 1, {BOOL}};
-	toggle_service = {PRODUCER, 6, "toggle", NULL, 0, {}};
+	turn_service = {CONSUMER, 4, "turn", &turn_exec, 1, {BOOL}},
+	toggle_service = {CONSUMER, 6, "toggle", &toggle_exec, 0, {}};
 
-struct service * services[NUM_SERVICES] = {&toggle_service};
+struct service * services[NUM_SERVICES] = {&turn_service, &toggle_service};

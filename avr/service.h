@@ -17,13 +17,37 @@
 /**
  * Smart Framework - AVR Implementation
  * 
- * \file avr/light.h
+ * \file avr/service.h
  * \author David Kelso - david@kelso.id.au
- * \brief Simple application header file
+ * \brief Header of application to coordinate services of smart devices
  */
 
 /// The port the application will listen on
 #define PORT 1337
+
+#define BOOL 1
+#define STRING 2
+#define INT8 3
+#define UINT8 4
+
+
+struct service {
+	uint8_t type;
+	uint8_t name_length;
+	char * name;
+	void (*on_exec)(char * args, uint8_t length);
+	uint8_t arg_length;
+	uint8_t arguments[];
+};
+
+struct destination {
+	uint8_t address[4]; // IP address of the destination
+	uint16_t port; // Port of the destination
+	struct service * source_service; // The local producer service
+	struct service dest_service; // The remote consumer service
+	struct destination * next; // The next destination in the message list
+};
+
 
 // Prototypes
 
@@ -31,11 +55,33 @@
  * light_init - 
  * Run time initialisation of the application
  */
-void light_init(void);
+void service_init(void);
 
 /**
  * light_callback - 
  * The function to call when a packet arrives for this application
  * \param header_in A UDP header with all the data contained in the packet
  */
-void light_callback(UDP_HEADER * header_in);
+void service_callback(UDP_HEADER * header_in);
+
+/**
+ * erase -
+ * free all the memory in the linked list from the pointer onwards
+ * \param pointer The destination pointer from which to free
+ */
+void erase(struct destination *);
+
+/**
+ * load -
+ * load the destinations stored into eeprom in to the message list
+ * starting at the pointer
+ * \param pointer The destination pointer to start filling from the eeprom
+ */
+void load(struct destination *);
+
+/**
+ * save -
+ * save the destinations in the list specified by pointer to eeprom
+ * \param pointer The destination pointer with the list to save
+ */
+void save(struct destination *);

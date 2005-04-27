@@ -19,7 +19,7 @@
  * 
  * \file avr/button.c
  * \author David Kelso - david@kelso.id.au
- * \brief Application for controlling a standard switch/button
+ * \brief Functions to control a switch/button
  */
 
 #include "conf.h"
@@ -27,59 +27,38 @@
 #include "udp.h"
 #include "button.h"
 
-#include <avr/io.h>
 #include <avr/signal.h>
 #include <avr/interrupt.h>
 
-#include <string.h>
-
-/*
- * button_init - initialise the application
- */
-void button_init(void) {
-	/*
-	if (udp_listen(PORT, &button_callback)) {
-		log("port in use");
-	}
-	*/
-	udp_listen(PORT, &button_callback);
-}
-
-/*
- * button_callback - process an incoming packet
- */
-void button_callback(UDP_HEADER * header_in) {
-}
-
 SIGNAL(SIG_INTERRUPT0) {
-	UDP_HEADER udp_header;
-	IPV4_HEADER ip_header;
+	struct destination * pointer = message_list;
+	while (pointer != NULL) {
+		if (pointer->source_service == toggle_service) {
+			// Broadcast end of programming
+			IPV4_HEADER ip_header;
+			UDP_HEADER udp_header;
+			uint16_t position = IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH;
 
-	PORTB = ~PORTB;
+			// Fill the UDP header
+			udp_header.ip_header = &ip_header;
+			udp_header.source_port = PORT;
+			udp_header.dest_port = pointer->port;
+			udp_header.length = 123; // FIXME;
 
-	data_length = UDP_HEADER_LENGTH + IPV4_HEADER_LENGTH;
-	
-	strlcpy(data + data_length, "toggle", 6);
-	data_length += 6;
-	
-	udp_header.source_port = PORT;
-	udp_header.remote_port = 1337;
-	udp_header.length = data_length - IPV4_HEADER_LENGTH;
+			// Fill the IP header
+			memcpy(ip_header.source_ip, local_ip, 4);
+			memcpy(ip_header.dest_ip, pointer->address, 4);
+			ip_header.protocol = UDP_PROTOCOL;
+			ip_header.length = 456; // FIXME;
 
-	ip_header.source_ip[0] = local_ip[0];
-	ip_header.source_ip[1] = local_ip[1];
-	ip_header.source_ip[2] = local_ip[2];
-	ip_header.source_ip[3] = local_ip[3];
+			// Copy the message into the buffer
+			memcpy(data + position, "20 toggle();", 12);
 
-	ip_header.dest_ip[0] = 10;
-	ip_header.dest_ip[1] = 0;
-	ip_header.dest_ip[2] = 0;
-	ip_header.dest_ip[3] = 1;
+			data_length = position + 12;
 
-	ip_header.protocol = UDP_PROTOCOL;
-	ip_header.length = data_length;
-
-	udp_header.ip_header = &ip_header;
-
-	udp_send(&udp_header);
+			udp_send(&udp_header);
+		}
+		
+		pointer = pointer->next;
+	}
 }
