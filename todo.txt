@@ -36,3 +36,4 @@ IPv6
 ICMP
 Maybe TCP?
 Webpage
+Change all possible run time stuff to compile time

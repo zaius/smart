@@ -108,6 +108,9 @@ void ipv4_send(IPV4_HEADER *header) {
 	data[10] = checksum >> 8;
 	data[11] = checksum & 0x00ff;
 
+	// Set the sending length
+	data_length = header->length;
+
 	slip_send();
 }
 

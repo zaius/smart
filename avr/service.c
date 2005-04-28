@@ -56,7 +56,8 @@ struct destination * temp_message_list;
 // Whether the device is in programming mode. If yes, it needs to track all
 // the service broadcasts that get sent to it.
 uint8_t program_mode = FALSE;
-// Whether the device's program switch has been pushed
+// Whether the device's program switch has been pushed. If yes it needs to
+// lock down all services it receives.
 uint8_t program_pushed = FALSE;
 
 /*
@@ -70,7 +71,7 @@ void service_init(void) {
 }
 
 /*
- * light_callback - process an incoming packet
+ * service_callback - process an incoming packet
  */
 void service_callback(UDP_HEADER * header_in) {
 	uint8_t * message = &data[IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH];
@@ -113,11 +114,66 @@ void service_callback(UDP_HEADER * header_in) {
 			}
 			else
 				log("Bad program mode message");
-		}
+		} // end if 10 program(<boolean>);
 
 		// 11 - Service broadcast
-		else if (!memcmp(message, "10 program(false);", 18)) {
-		}
+		else if (!memcmp(message, "11 ", 3)) {
+			uint8_t i;
+			for (i = 0; i < NUM_SERVICES; i++) {
+				uint8_t position = IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH;
+				while (TRUE) {
+					// Move to the next message
+
+					// Compare service names
+					if (!memcmp(message + 3, services[i]->name, services[i]->name_length)) {
+						// We've had a match! Add it to the temp message list
+						struct destination * pointer, * list;
+
+						pointer = malloc(sizeof(struct destination));
+						memcpy(pointer->address, header_in->ip_header->source_ip, 4);
+						pointer->port = header_in->source_port;
+						pointer->source_service = services[i];
+						pointer->dest_service.type = CONSUMER;
+						pointer->dest_service.name_length = services[i]->name_length;
+						pointer->dest_service.name = services[i]->name;
+						// FIXME
+						// pointer->dest_service.arg_length = 0;
+						// pointer->dest_service.arguments = {};
+
+						list = temp_message_list;
+						if (temp_message_list == NULL)
+							// There's nothing in the list, make it the first
+							temp_message_list = pointer;
+						else {
+							// Move to the end of the list and put it in
+							struct destination * list = temp_message_list;
+							while (list->next != NULL) 
+								list = list->next;
+
+							list->next = pointer;
+						}
+					}
+					
+					// TODO: Compare arguments as well
+
+					// Skip to the next message
+					while (data[position] != ')' && position < header_in->length) 
+						position++;
+
+					// If something wierd has happened and we have reached the end without
+					// finding termination, just stop.
+					if (position >= header_in->length) break;
+
+					// If the next character is a semicolon that indicated it's the last
+					// message of the broadcast.
+					if (data[++position] == ';') break;
+
+					// Otherwise there's still messages left. Move to the first char.
+					position += 2;
+				}
+			}
+			return;
+		} // end else if 11 <Service Broadcast>
 		else
 			log("Bad broadcast message");
 	}
@@ -151,6 +207,9 @@ void service_callback(UDP_HEADER * header_in) {
 				break;
 			}
 		}
+	} // End else if 20 <Service Request>
+	else {
+		log("Unknown message prefix");
 	}
 }
 
@@ -264,52 +323,90 @@ void save(struct destination * pointer) {
 
 SIGNAL(SIG_INTERRUPT1) {
 	uint8_t i, need_to_send;
-
 	// The program button has been pressed
 	
-	// If not yet in program mode, get into it
-	if (!program_mode) {
-		program_mode = TRUE;
+	if (program_mode) {
+		if (program_pushed) {
+			// Program had already been pushed - that means we want
+			// to end the programming mode
+
+			// Broadcast end of programming
+			IPV4_HEADER ip_header;
+			UDP_HEADER udp_header;
+			uint16_t position = IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH;
+
+			// Copy the message prefix into the buffer
+			memcpy(data + position, "10 program(false);", 18);
+			position += 18;
+
+			// Fill the UDP header
+			udp_header.ip_header = &ip_header;
+			udp_header.source_port = PORT;
+			udp_header.dest_port = PORT;
+			// udp header + data in octets
+			udp_header.length = position - IPV4_HEADER_LENGTH;
+
+			// Fill the IP header
+			memcpy(ip_header.source_ip, local_ip, 4);
+			memcpy(ip_header.dest_ip, bcast_ip, 4);
+			ip_header.protocol = UDP_PROTOCOL;
+			// ip header + udp header + data in octets
+			ip_header.length = position;
+
+			// Send it!
+			udp_send(&udp_header);
+
+
+			// Make temp list permanant
+			erase(message_list);
+			message_list = temp_message_list;
+				
+			// Store the message list to eeprom
+			save(message_list);
+
+			// Change out of program mode
+			program_mode = FALSE;
+			program_pushed = FALSE;
+
+			// Return to idle mode
+			return;
+		}
+		
+		// Else if not pushed, fall through
 	}
-
-	if (program_pushed) {
-		// Program has already been pushed - that means we want
-		// to end the programming mode
-
-		// Broadcast end of programming
+	else {
+		// Send start programming broadcast
 		IPV4_HEADER ip_header;
 		UDP_HEADER udp_header;
 		uint16_t position = IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH;
+
+		memcpy(data + position, "10 program(true);", 17);
+		position += 17;
 
 		// Fill the UDP header
 		udp_header.ip_header = &ip_header;
 		udp_header.source_port = PORT;
 		udp_header.dest_port = PORT;
-		udp_header.length = 123; // FIXME;
+		udp_header.length = position - IPV4_HEADER_LENGTH;
 
 		// Fill the IP header
 		memcpy(ip_header.source_ip, local_ip, 4);
 		memcpy(ip_header.dest_ip, bcast_ip, 4);
 		ip_header.protocol = UDP_PROTOCOL;
-		ip_header.length = 456; // FIXME;
+		ip_header.length = position;
 
-		// Copy the message prefix into the buffer
-		memcpy(data + position, "10 program(false);", 18);
+		udp_send(&udp_header);
 
-		// Make temp list permanant
-		erase(message_list);
-		message_list = temp_message_list;
-			
-		// Store the message list to eeprom
-		save(message_list);
 
-		// Change out of program mode
-		program_mode = FALSE;
-		program_pushed = FALSE;
-
-		// Return to idle mode
-		return;
+		// Change to program mode
+		program_mode = TRUE;
 	}
+
+	// There are two ways to end up here
+	// 1. The device is in program mode and the program button 
+	// hadn't been pushed before
+	// 2. The device wasn't in program mode and initiated 
+	// program mode on the network
 
 	// Remember that this device has been pushed
 	program_pushed = TRUE;
@@ -327,22 +424,11 @@ SIGNAL(SIG_INTERRUPT1) {
 		// Transmit a broadcast with all this device's consumer messages
 		IPV4_HEADER ip_header;
 		UDP_HEADER udp_header;
-		uint16_t position = 0;
-
-		// Fill the UDP header
-		udp_header.ip_header = &ip_header;
-		udp_header.source_port = PORT;
-		udp_header.dest_port = PORT;
-		udp_header.length = 123; // FIXME;
-
-		// Fill the IP header
-		memcpy(ip_header.source_ip, local_ip, 4);
-		memcpy(ip_header.dest_ip, bcast_ip, 4);
-		ip_header.protocol = UDP_PROTOCOL;
-		ip_header.length = 456; // FIXME;
+		uint16_t position = IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH;
 
 		// Copy the message prefix into the buffer
-		memcpy(data + 789, "11 ", 3);
+		memcpy(data + position, "11 ", 3);
+		position += 3;
 
 		for (i = 0; i < NUM_SERVICES; i++) {
 			uint8_t j;
@@ -392,6 +478,20 @@ SIGNAL(SIG_INTERRUPT1) {
 			// Put a space between messages
 			data[position++] = ' ';
 		} // end of services for-loop
-		ipv4_send(&ip_header);
-	}
+		data[position++] = ';';
+
+		// Fill the UDP header
+		udp_header.ip_header = &ip_header;
+		udp_header.source_port = PORT;
+		udp_header.dest_port = PORT;
+		udp_header.length = position - IPV4_HEADER_LENGTH;
+
+		// Fill the IP header
+		memcpy(ip_header.source_ip, local_ip, 4);
+		memcpy(ip_header.dest_ip, bcast_ip, 4);
+		ip_header.protocol = UDP_PROTOCOL;
+		ip_header.length = position;
+
+		udp_send(&udp_header);
+	} // end if need_to_send
 }

@@ -47,23 +47,23 @@ SIGNAL(SIG_INTERRUPT0) {
 			UDP_HEADER udp_header;
 			uint16_t position = IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH;
 
+			// Copy the message into the buffer
+			memcpy(data + position, "20 toggle();", 12);
+			data_length = position + 12;
+
 			// Fill the UDP header
 			udp_header.ip_header = &ip_header;
 			udp_header.source_port = PORT;
 			udp_header.dest_port = pointer->port;
-			udp_header.length = 123; // FIXME;
+			udp_header.length = position - IPV4_HEADER_LENGTH;
 
 			// Fill the IP header
 			memcpy(ip_header.source_ip, local_ip, 4);
 			memcpy(ip_header.dest_ip, pointer->address, 4);
 			ip_header.protocol = UDP_PROTOCOL;
-			ip_header.length = 456; // FIXME;
+			ip_header.length = position;
 
-			// Copy the message into the buffer
-			memcpy(data + position, "20 toggle();", 12);
-
-			data_length = position + 12;
-
+			// Send it!
 			udp_send(&udp_header);
 		}
 		
