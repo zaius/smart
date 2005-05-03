@@ -30,6 +30,7 @@
 #include "service.h"
 
 #include <avr/io.h>
+#include <string.h> // memcmp
 
 struct service 
 	turn_service = {CONSUMER, 4, "turn", &turn_exec, 1, {BOOL}},

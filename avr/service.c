@@ -207,6 +207,9 @@ void service_callback(UDP_HEADER * header_in) {
 				break;
 			}
 		}
+		// Silently ignore if a message doesn't match
+		// TODO: Maybe need to log this
+
 	} // End else if 20 <Service Request>
 	else {
 		log("Unknown message prefix");
@@ -450,6 +453,10 @@ SIGNAL(SIG_INTERRUPT1) {
 				if (services[i]->arguments[j] == BOOL) {
 					memcpy(data + position, "bool", 4);
 					position += 4;
+				}
+				else if (services[i]->arguments[j] == STRING) {
+					memcpy(data + position, "string", 6);
+					position += 6;
 				}
 				else if (services[i]->arguments[j] == INT8) {
 					memcpy(data + position, "int8", 4);

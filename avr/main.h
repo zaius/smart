@@ -48,4 +48,3 @@ void external_init(void);
  * The main function 
  */
 int main(void);
-

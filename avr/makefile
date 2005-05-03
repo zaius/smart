@@ -29,10 +29,9 @@
 #                customize the avrdude settings below first!
 #
 
-# The target application can be decided on the command line with make:
-# make TARGET=application
-# Or it can be defined here
-# TARGET = light
+# The device can be decided on the command line with make:
+# make DEVICE=application
+
 
 # MCU name
 MCU = atmega16
@@ -40,17 +39,19 @@ MCU = atmega16
 # Output format. (can be srec, ihex, binary)
 FORMAT = ihex
 
-# Default target if none is specified on the command line
 DEFAULT = light
 
-# Check we have a target
-ifndef TARGET
-$(warning 'No target defined, assuming $(DEFAULT)')
-TARGET = $(DEFAULT)
+# Default device
+ifndef DEVICE
+$(warning 'No device defined, assuming $(DEFAULT)')
+DEVICE = $(DEFAULT)
 endif
 
+TARGET = main
+
+
 # List C source files here. (C dependencies are automatically generated.)
-SRC = $(TARGET).c ipv4.c udp.c slip.c conf.c main.c service.c
+SRC = ipv4.c udp.c slip.c conf.c service.c $(DEVICE).c $(TARGET).c
 
 
 
@@ -70,7 +71,7 @@ DEBUG = stabs
 CSTANDARD = -std=gnu99
 
 # Place -D or -U options here
-CDEFS = -D $(TARGET)
+CDEFS = -D $(DEVICE)
 
 # Place -I options here
 CINCS =

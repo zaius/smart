@@ -34,6 +34,7 @@
 #include "ipv4.h"
 #include "udp.h"
 #include "slip.h"
+#include "service.h"
 
 #if defined echo
 #include "echo.h"

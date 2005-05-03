@@ -177,7 +177,7 @@ uint8_t slip_getc(uint8_t *c) {
 
 
 uint8_t slip_putc(uint8_t c) {
-	uint8_t received;
+	uint8_t rec_char, count = 0, received = FALSE;
 
 	// Wait until the buffer is empty
 	loop_until_bit_is_set(UCSRA, UDRE);
@@ -186,10 +186,14 @@ uint8_t slip_putc(uint8_t c) {
 	UDR = c;
 
 	// Read the character and check they're the same
-	//.while(slip_getc(&received));
+	while(!received) {
+		received = slip_getc(&rec_char);
 
-	msleep(250);
+		// If the device isn't connected this would freeze indefinitely.
+		// Therefore we need a timeout to warn if nothing is being received.
+		if (count++ > 250) return -2;
+	}
 
-	if (received == c) return 0;
+	if (rec_char == c) return 0;
 	else return -1;
 }
