@@ -50,6 +50,8 @@ struct destination {
 	struct destination * next; // The next destination in the message list
 };
 
+extern struct destination * message_list;
+
 
 // Prototypes
 
@@ -87,3 +89,13 @@ void load(struct destination *);
  * \param pointer The destination pointer with the list to save
  */
 void save(struct destination *);
+
+/**
+ * debounce -
+ * Eliminate the bouncing and noise when a switch is pressed and find
+ * the real value.
+ * \param port A pointer to the input port to take the data from
+ * \param pin The number of the pin to take the value from
+ * \returns The true value of the port
+ */
+uint8_t debounce(volatile uint8_t *port, uint8_t pin);

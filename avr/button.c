@@ -30,6 +30,7 @@
 
 #include <avr/signal.h>
 #include <avr/interrupt.h>
+#include <string.h>        // memcpy
 
 struct service 
 	// turn_service = {PRODUCER, 4, "turn", NULL, 1, {BOOL}};
@@ -40,8 +41,13 @@ struct service * services[NUM_SERVICES] = {&toggle_service};
 
 SIGNAL(SIG_INTERRUPT0) {
 	struct destination * pointer = message_list;
+
+	// Debounce the switch used to call the interrupt (see service.c)
+	if (debounce(&PIND, PD3) != 1)
+		return;
+
 	while (pointer != NULL) {
-		if (pointer->source_service == toggle_service) {
+		if (pointer->source_service == &toggle_service) {
 			// Broadcast end of programming
 			IPV4_HEADER ip_header;
 			UDP_HEADER udp_header;

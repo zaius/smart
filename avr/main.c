@@ -96,7 +96,16 @@ void external_init() {
 // Main function and idle loop
 int main() {
 	DDRB = 0xff;
-	DDRD = 0x43; // 0100 0011; //RWIIIIoO
+	DDRD = 0xf2; // 111?0010
+
+	// Set PORTD to zero in order to
+	//  - disable transmitting to the network
+	//  - set the interrupt pull up to low
+	PORTD = 0;
+
+	// Disable the analog comparitor
+	ACSR = _BV(ACD);
+	ADCSRA = 0;
 
 	// Initialise the UART for serial communication
 	uart_init();

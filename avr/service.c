@@ -324,10 +324,42 @@ void save(struct destination * pointer) {
 	eeprom_write_byte(0, count);
 }
 
+
+// Be sure to call with a pointer to an input port such as &PINB or similar
+uint8_t debounce(volatile uint8_t *port, uint8_t pin) {
+	uint8_t value, previous = -1;
+
+	// Get the initial value of the pin
+	value = *port & _BV(pin);
+
+	// Loop until the value present on the pin and the value
+	// that was there 10 milliseconds ago are equal
+	while (previous != value) {
+		msleep(10);
+
+		previous = value;
+		value = *port & _BV(pin);
+	}
+
+	// Bitshift so the returned value is either 0 or 1
+	return (value >> pin);
+}
+
+
 SIGNAL(SIG_INTERRUPT1) {
-	uint8_t i, need_to_send;
+	uint8_t i, need_to_send, value;
 	// The program button has been pressed
+
+	// Debounce the switch used to call the interrupt
+	// (Don't use INT1 as the pin - that is an index in a register)
+	value = debounce(&PIND, PD3);
+
+	// If the switch was actually turning off and the interrupt was just 
+	// caused by bounces (or noise) then ignore the interrupt
+	if (value != 1) 
+		return;
 	
+
 	if (program_mode) {
 		if (program_pushed) {
 			// Program had already been pushed - that means we want
@@ -501,4 +533,7 @@ SIGNAL(SIG_INTERRUPT1) {
 
 		udp_send(&udp_header);
 	} // end if need_to_send
-}
+
+	// Clear any int0 interrupts that might have happened since
+	GIFR |= _BV(INTF1);
+} // end SIGNAL
