@@ -36,6 +36,12 @@
 /// colliding packet
 #define MAX_RETRIES 10
 
+/// The port the RS485 transmit enable is connected to
+#define TXEN_PORT PORTD
+/// The pin of TXEN_PORT that the RS485 transmit enable is connected to
+#define TXEN_PIN 7
+
+
 
 // Prototypes
 
@@ -53,7 +59,7 @@ uint8_t slip_send(void);
  */
 void slip_poll(void);
 
-void msleep(uint8_t);
+void msleep(uint16_t);
 
 /**
  * slip_getc - 

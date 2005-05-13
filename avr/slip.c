@@ -33,6 +33,9 @@ uint8_t retries = 0;
 uint8_t slip_send() {
 	uint8_t i, c, collision = FALSE;
 
+	// Enable the transmission
+	TXEN_PORT |= _BV(TXEN_PIN);
+
 	if (slip_putc(SLIP_END)) collision = TRUE;
 
 	for (i = 0; !collision && i < data_length; i++) {
@@ -54,6 +57,9 @@ uint8_t slip_send() {
 	if (!collision)
 		if (slip_putc(SLIP_END)) collision = TRUE;
 
+	// Finish the transmission
+	TXEN_PORT &= ~_BV(TXEN_PIN);
+
 	// If there has been no collision, the packet has been transmitted fine
 	if (!collision) return 0;
 
@@ -61,17 +67,22 @@ uint8_t slip_send() {
 
 	// if we've had more than MAX_RETRIES, give up; otherwise wait a random
 	// time and run slip_send again
-	if (retries > MAX_RETRIES) return -1;
+	if (retries > MAX_RETRIES) {
+		retries = 0;
+		return -1;
+	}
 	
 
 	// The maximal possible delay is 262.14 ms / F_CPU in MHz.
+	// 
 	// 262.14 / 3.6864 = 71.11 ms
-	msleep(random() * retries);
+	msleep(random() & 0xff * retries);
+
 	return slip_send();
 }
 
-void msleep(uint8_t delay) {
-	uint8_t i = 0;
+void msleep(uint16_t delay) {
+	uint16_t i = 0;
 	// 4 operations per cycle
 	// max 65536 cycles
 	// F_CPU / 1000 operations per ms

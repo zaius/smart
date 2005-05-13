@@ -96,6 +96,7 @@ void external_init() {
 // Main function and idle loop
 int main() {
 	DDRB = 0xff;
+	DDRD = 0x43; // 0100 0011; //RWIIIIoO
 
 	// Initialise the UART for serial communication
 	uart_init();
