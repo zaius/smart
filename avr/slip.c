@@ -93,8 +93,7 @@ void msleep(uint16_t delay) {
 
 uint8_t c, previous;
 uint16_t length = 0;
-int inpacket = FALSE;
-int seeded = FALSE;
+uint8_t seeded = FALSE;
 void slip_poll(void) {
 	// Keep looping while we have characters
 	while (slip_getc(&c)) {
@@ -106,38 +105,36 @@ void slip_poll(void) {
 		}
 
 		if (c == SLIP_END) { // The framing character
-			if (inpacket) {
-				uint8_t version;
+			uint8_t version;
 
-				inpacket = FALSE;
+			inpacket = FALSE;
 
-				// End marker found, we have a complete packet
-				// Move the length into the global variable
-				data_length = length;
-				length = 0;
+			// End marker found, we have a complete packet
+			// Move the length into the global variable
+			data_length = length;
+			length = 0;
 
-				// Get the version from the packet so we know which network layer
-				// to hand it to
-				version = data[0] >> 4;
+			// Drop 0 length packets - these should happen at the start of
+			// every data packet anyway to flush out the noise
+			if (data_length == 0) return;
 
-				// TODO: Need to do the whole #ifdef thing and check whether we 
-				// have certain versions compiled in
-				if (version == 4) {
-					ipv4_receive();
-					return;
-				}
+			// Get the version from the packet so we know which network layer
+			// to hand it to
+			version = data[0] >> 4;
 
-				// There was no handler for the specified version
-				log("Invalid version number");
+			// TODO: Need to do the whole #ifdef thing and check whether we 
+			// have certain versions compiled in
+			if (version == 4) {
+				ipv4_receive();
 				return;
 			}
-			else { // Start of a packet
-				inpacket = TRUE;
-				continue;
-			}
+
+			// There was no handler for the specified version
+			log("Invalid version number");
+			return;
 		}
-		else if (!inpacket) {
-			// If we're not in a packet, this will just be noise so skip it
+		else { // Start of a packet
+			inpacket = TRUE;
 			continue;
 		}
 		else if (previous == SLIP_ESC) {
