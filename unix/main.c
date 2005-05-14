@@ -71,27 +71,61 @@
 
 #define MAX_RETRIES 10
 
+void serial_event(void);
+void tunnel_event(void);
+
 // Signal handler for CTRL-C
 volatile sig_atomic_t quit = FALSE;
 void sigterm(int signal) {
 	quit = TRUE;
 }
 
-int main(int argc, char **argv) {
-	struct tuninfo tunnelinfo;
-	int tunnel, serial, i, sock;
-	struct pollfd fds[2];
-	uint8_t buffer[BUFFER_SIZE];
-	struct ifaliasreq ifa;
-	struct sockaddr_in *in;
-	int retries = 0;
+struct pollfd fds[2];
+int serial, tunnel;
+uint8_t buffer[BUFFER_SIZE];
 
+int main(int argc, char **argv) {
 	// Seed the random number generator
 	srandom(time(NULL));
 
 	// Set up signal handlers
 	signal(SIGINT, sigterm);
 
+	// Start the main loop
+	while (quit == FALSE) {
+		int result = 0;
+
+		result = poll(fds, 2, 2500);
+
+		if (result < 0) {
+			// error in poll, warn
+			warn("Poll Error");
+			continue;
+		}
+
+		// timed out, continue the loop
+		if (result == 0) {
+			printf("timeout\n");
+			continue;
+		}
+
+		if (fds[SERIAL_INDEX].revents != 0) {
+			serial_event();
+		}
+
+		if (fds[TUNNEL_INDEX].revents != 0) {
+			tunnel_event();
+		}
+	}
+	// We must have received a signal, tidy up and exit
+	printf("Exiting...\n");
+	close(serial);
+	close(tunnel);
+
+	return 0;
+}
+
+void serial_init() {
 	// Open the serial interface
 	serial = open(SERIAL_DEV, O_RDWR);
 
@@ -102,11 +136,58 @@ int main(int argc, char **argv) {
 	// Put the details of the serial interface into the fd array for polling
 	fds[SERIAL_INDEX].fd = serial;
 	fds[SERIAL_INDEX].events = POLLIN;
+}
+
+void serial_event() {
+	int length, ready,i ;
+
+	printf("serial\n");
+
+	length = read(serial, buffer, S_READ);
+
+	// Print the data
+	printf("Encoded: ");
+	for (i = 0; i < length; i++) {
+		printf("0x%02x ", buffer[i]);
+	}	
+	printf("\n");
+
+
+	// Put the data into the slip queue and read off the number of 
+	// ready packets
+	ready = slip_add_data(buffer, length);
+
+	// Send all the ready packets
+	while (ready > 0) {
+		size_t dest_size = 4000, length;
+		uint8_t dest[dest_size];
+
+		length = slip_retrieve(dest, dest_size);
+
+		write(tunnel, dest, length);
+
+		ready--;
+
+		printf("Decoded: ");
+		decode(dest, length);
+		for (i = 0; i < length; i++) {
+			printf("0x%02x ", dest[i]);
+		}
+		printf("\n");
+	}
+}
+
+void tunnel_init() {
+	struct tuninfo tunnelinfo;
+	int i, sock;
+	struct ifaliasreq ifa;
+	struct sockaddr_in *in;
 
 	// Open the tunnel interface
 	tunnel = open(TUNNEL_DEV, O_RDWR);
 
-	if (tunnel < 0) err(tunnel, "Error opening tunnel");
+	if (tunnel < 0) 
+		err(tunnel, "Error opening tunnel");
 
 	tunnelinfo.baudrate = TUNNEL_BAUD;	// linespeed 
 	tunnelinfo.mtu = TUNNEL_MTU;   		// maximum transmission unit 
@@ -161,135 +242,74 @@ int main(int argc, char **argv) {
 	// Put the details of the tunnel interface into the fd array for polling
 	fds[TUNNEL_INDEX].fd = tunnel;
 	fds[TUNNEL_INDEX].events = POLLIN;
+}
 
+void tunnel_event() {
+	int length, i; 
+	uint8_t * encoded;
+	size_t encoded_size;
+	int retries = 0;
 
+	printf("Network\n");
 
-	// Start the main loop
-	while (quit == FALSE) {
-		int result = 0;
+	// tun always promises to give a full packet which makes life easy
+	length = read(tunnel, buffer, BUFFER_SIZE);
 
-		result = poll(fds, 2, 2500);
+	// write(tunnel, buffer, length);
 
-		if (result < 0) {
-			// error in poll, warn
-			warn("Poll Error");
-			continue;
-		}
+	decode(buffer, length);
+	for (i = 0; i < length; i++) {
+		printf("0x%02x ", buffer[i]);
+	}	
+	printf("\n");
 
-		// timed out, continue the loop
-		if (result == 0) {
-			printf("timeout\n");
-			continue;
-		}
+	// If someone handed a packet with characters that all needed
+	// escaping, there would be twice as many characters plus a
+	// SLIP_END character at the start and end.
+	encoded_size = length * 2 + 2;
+	encoded = malloc(encoded_size * sizeof(uint8_t));
 
-		if (fds[SERIAL_INDEX].revents != 0) {
-			int length, ready;
+	// Encode the buffer with slip
+	length = slip_encode(encoded, encoded_size, buffer, length);
+	if (length < 0)
+		warn("Encoded buffer too small");
 
-			printf("serial\n");
-
-			length = read(serial, buffer, S_READ);
-
-			// Print the data
-			printf("Encoded: ");
-			for (i = 0; i < length; i++) {
-				printf("0x%02x ", buffer[i]);
-			}	
-			printf("\n");
-
-
-			// Put the data into the slip queue and read off the number of 
-			// ready packets
-			ready = slip_add_data(buffer, length);
-
-			// Send all the ready packets
-			while (ready > 0) {
-				size_t dest_size = 4000, length;
-				uint8_t dest[dest_size];
-
-				length = slip_retrieve(dest, dest_size);
-
-				write(tunnel, dest, length);
-
-				ready--;
-
-				printf("Decoded: ");
-				decode(dest, length);
-				for (i = 0; i < length; i++) {
-					printf("0x%02x ", dest[i]);
-				}
-				printf("\n");
-			}
-		}
-
-		if (fds[TUNNEL_INDEX].revents != 0) {
-			int length; 
-			uint8_t * encoded;
-			size_t encoded_size;
-
-			printf("Network\n");
-
-			// tun always promises to give a full packet which makes life easy
-			length = read(tunnel, buffer, BUFFER_SIZE);
-
-			// write(tunnel, buffer, length);
-
-			decode(buffer, length);
-			for (i = 0; i < length; i++) {
-				printf("0x%02x ", buffer[i]);
-			}	
-			printf("\n");
-
-			// If someone handed a packet with characters that all needed
-			// escaping, there would be twice as many characters plus a
-			// SLIP_END character at the start and end.
-			encoded_size = length * 2 + 2;
-			encoded = malloc(encoded_size * sizeof(uint8_t));
-
-			// Encode the buffer with slip
-			length = slip_encode(encoded, encoded_size, buffer, length);
-			if (length < 0)
-				warn("Encoded buffer too small");
-
-			printf("Encoded: ");
-			for (i = 0; i < length; i++) {
-				printf("0x%02x ", encoded[i]);
-			}
-			printf("\n");
-
-			// Write the packet to the serial device
-			// write(serial, encoded, length);
-			for (i = 0; i < length; i++) {
-				uint8_t received;
-				// Write the character
-				write(serial, encoded + i, 1);
-				// Because the transmit and receive wires are tied, we 
-				// should receive the same character as we sent
-				read(serial, &received, 1);
-
-				printf("0x%x\t0x%x\n", encoded[i], received);
-
-				// If they don't match, we've had a collision
-				if (encoded[i] != received) {
-					printf("Collision\n");
-
-					retries++;
-					if (retries > MAX_RETRIES) break;
-
-					// increase the wait time each time
-					usleep(random() * retries);
-					i = 0;
-				}
-
-				// Reset the retries in case we've had collisions
-				retries = 0;
-			}
-			free(encoded);
-		}
+	printf("Encoded: ");
+	for (i = 0; i < length; i++) {
+		printf("0x%02x ", encoded[i]);
 	}
-	// We must have received a signal, tidy up and exit
-	printf("Exiting...\n");
-	close(serial);
-	close(tunnel);
+	printf("\n");
 
-	return 0;
+	// Need to IOCTL here to clear DTR (cleared means 1)
+	ioctl(serial, TIOCCDTR);
+	// Write the packet to the serial device
+	for (i = 0; i < length; i++) {
+		uint8_t received;
+		// Write the character
+		write(serial, encoded + i, 1);
+		// Because the transmit and receive wires are tied, we 
+		// should receive the same character as we sent
+		read(serial, &received, 1);
+
+		printf("0x%x\t0x%x\n", encoded[i], received);
+
+		// If they don't match, we've had a collision
+		if (encoded[i] != received) {
+			printf("Collision\n");
+
+			retries++;
+			if (retries > MAX_RETRIES) break;
+
+			// increase the wait time each time
+			usleep(random() * retries);
+			i = 0;
+		}
+
+		// Reset the retries in case we've had collisions
+		retries = 0;
+	}
+	// Set the DTR (ie 0v)
+	ioctl(serial, TIOCSDTR);
+
+	free(encoded);
 }

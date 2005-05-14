@@ -43,7 +43,7 @@ size_t slip_encode(uint8_t * dest, size_t dest_size, uint8_t * source, size_t so
 	uint8_t c;
 
 	// Zero sized buffers can break things
-	if (dest_size < 1 || dest == NULL || source = NULL) return 0;
+	if (dest_size < 1 || dest == NULL || source == NULL) return 0;
 
 	dest[0] = SLIP_END;
 
@@ -83,7 +83,6 @@ PACKET * first = NULL, * pointer = NULL;
 // need to save the data between one set of SLIP_END characters and
 // ignore the data between the other (there should be nothing so it will
 // only be noise
-int inpacket = FALSE;
 int dest_pos = 0;
 int escaped = FALSE;
 
@@ -91,47 +90,38 @@ int slip_add_data(uint8_t * source, size_t length) {
 	int source_pos, count = 0;
 	uint8_t c;
 
+	if (first == NULL)
+		first = malloc(sizeof(PACKET));
+		
 	for (source_pos = 0; source_pos < length; source_pos++) {
 		c = source[source_pos];
 
-		if (c == SLIP_END) { // End (or beginning) of a packet
-			if (inpacket) { // End of a packet
-				inpacket = FALSE;
+		if (c == SLIP_END) { // End (and beginning) of a packet
+			// If there hasn't been any data, just skip the packet
+			if (dest_pos == 0)
+				continue;
 				
-				// First should never be null if we're in a packet (CHECK THIS)
-				pointer = first;
-				while (pointer->next != NULL)
-					pointer = pointer->next;
+			// Get to the last/current packet
+			// (First should never be null by here so no need to check)
+			pointer = first;
+			while (pointer->next != NULL)
+				pointer = pointer->next;
 				
-				pointer->length = dest_pos;
-				dest_pos = 0;
-			}
-			else { // beginning of a packet
-				inpacket = TRUE;
+			// Move the data into the pointer
+			pointer->length = dest_pos;
 
-				// put this new packet on the end of the linked list
-				PACKET * packet = malloc(sizeof(PACKET));
-				if (first == NULL) 
-					// There are no packets, so this is the first
-					first = packet;
-				else {
-					// Move the pointer to the end
-					pointer = first;
-					while (pointer->next != NULL) 
-						pointer = pointer->next;
+			// Reset the destination length for the next packet
+			dest_pos = 0;
 
-					pointer->next = packet;
-				}
-			}
+
+			// put this new packet on the end of the linked list
+			pointer->next = malloc(sizeof(PACKET));
+			pointer = pointer->next;
+			
 			// We're done with the SLIP_END character, time for some data
 			continue;
 		}
 		
-		else if (!inpacket) {
-			// If we're not in a packet, this will just be noise so skip it
-			continue;
-		}
-
 		else if (escaped) {
 			if (c == SLIP_ESC_END)
 				c = SLIP_END;
@@ -155,7 +145,6 @@ int slip_add_data(uint8_t * source, size_t length) {
 		// If we get this far the info is data so add it to the buffer
 		if (dest_pos < BUFFER_LENGTH) {
 			// Move the pointer to the current packet
-			// FIXME: I really don't know why it crashes when i don't do this
 			pointer = first;
 			while (pointer->next != NULL) 
 				pointer = pointer->next;
@@ -164,19 +153,14 @@ int slip_add_data(uint8_t * source, size_t length) {
 	}
 
 	// We've added all the data, count the number of ready packets
-	if (first == NULL) return 0;
-
 	pointer = first;
+	// Check whether the next one exists - the last packet is always in progress
 	while (pointer->next != NULL) {
 		pointer = pointer->next;
 		count++;
 	}
 
-	// If we're halfway through a packet, it doesn't count as complete
-	if (inpacket) return count;
-	// If one packet has finished but another hasn't started, a new struct wont
-	// have been created on the end of the linked list yet - add one to return
-	else return count + 1;
+	return count;
 }
 
 
@@ -188,7 +172,7 @@ size_t slip_retrieve(uint8_t * dest, size_t dest_size) {
 	
 	// If there are no packets ready then return -1
 	if (first == NULL) return -1;
-	if (first->next == NULL && inpacket) return -1;
+	if (first->next == NULL) return -1;
 
 	// Get pointers to the data from the packet
 	source = first->data;
