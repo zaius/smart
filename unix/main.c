@@ -72,7 +72,9 @@
 #define MAX_RETRIES 10
 
 void serial_event(void);
+void serial_init(void);
 void tunnel_event(void);
+void tunnel_init(void);
 
 // Signal handler for CTRL-C
 volatile sig_atomic_t quit = FALSE;
@@ -90,6 +92,9 @@ int main(int argc, char **argv) {
 
 	// Set up signal handlers
 	signal(SIGINT, sigterm);
+
+	serial_init();
+	tunnel_init();
 
 	// Start the main loop
 	while (quit == FALSE) {

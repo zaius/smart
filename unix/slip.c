@@ -45,7 +45,7 @@ size_t slip_encode(uint8_t * dest, size_t dest_size, uint8_t * source, size_t so
 	// Zero sized buffers can break things
 	if (dest_size < 1 || dest == NULL || source == NULL) return 0;
 
-	dest[0] = SLIP_END;
+	dest[j] = SLIP_END;
 
 	for (i = 0; i < source_size; i++) {
 		c = source[i];
@@ -66,7 +66,7 @@ size_t slip_encode(uint8_t * dest, size_t dest_size, uint8_t * source, size_t so
 
 	if (++j < dest_size) dest[j] = SLIP_END;
 
-	return j;
+	return ++j;
 }
 
 
@@ -117,6 +117,7 @@ int slip_add_data(uint8_t * source, size_t length) {
 			// put this new packet on the end of the linked list
 			pointer->next = malloc(sizeof(PACKET));
 			pointer = pointer->next;
+			pointer->next = NULL;
 			
 			// We're done with the SLIP_END character, time for some data
 			continue;
