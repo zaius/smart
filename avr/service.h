@@ -36,7 +36,7 @@
 struct service {
 	uint8_t type;
 	uint8_t name_length;
-	char * name;
+	uint8_t * name;
 	void (*on_exec)(char * args, uint8_t length);
 	uint8_t arg_length;
 	uint8_t arguments[];

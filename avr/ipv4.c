@@ -185,7 +185,7 @@ void ipv4_receive() {
 	header.dest_ip[3] = data[position++];
 
 	// Drop any packets not addressessed to this node or the broadcast address
-	if (!compare_ip(header.dest_ip, local_ip) ||
+	if (!compare_ip(header.dest_ip, local_ip) &&
 		!compare_ip(header.dest_ip, bcast_ip))
 		return;
 	

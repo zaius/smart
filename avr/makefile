@@ -34,7 +34,7 @@
 
 
 # MCU name
-MCU = atmega16
+MCU = atmega8
 
 # Output format. (can be srec, ihex, binary)
 FORMAT = ihex

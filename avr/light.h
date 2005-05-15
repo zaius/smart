@@ -24,7 +24,7 @@
 
 #define NUM_SERVICES 2
 
-void turn_exec(char *, uint8_t);
-void toggle_exec(char *, uint8_t);
+void turn_exec(uint8_t *, uint8_t);
+void toggle_exec(uint8_t *, uint8_t);
 
 extern struct service * services[NUM_SERVICES];

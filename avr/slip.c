@@ -107,8 +107,6 @@ void slip_poll(void) {
 		if (c == SLIP_END) { // The framing character
 			uint8_t version;
 
-			inpacket = FALSE;
-
 			// End marker found, we have a complete packet
 			// Move the length into the global variable
 			data_length = length;
@@ -132,10 +130,6 @@ void slip_poll(void) {
 			// There was no handler for the specified version
 			log("Invalid version number");
 			return;
-		}
-		else { // Start of a packet
-			inpacket = TRUE;
-			continue;
 		}
 		else if (previous == SLIP_ESC) {
 			// Previous read byte was an escape byte, so this byte will be

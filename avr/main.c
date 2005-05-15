@@ -46,7 +46,7 @@
 #include "button.h"
 #endif
 
-uint8_t counter;
+uint8_t counter = 0;
 
 // Initialise the on-chip UART
 void uart_init() {
@@ -86,11 +86,15 @@ void external_init() {
 	// 0		1		Any logical change on INT0 generates an interrupt request.
 	// 1		0		The falling edge of INT0 generates an interrupt request.
 	// 1		1		The rising edge of INT0 generates an interrupt request.
-	MCUCR = _BV(ISC01) | _BV(ISC00);
+	// MCUCR = _BV(ISC01) | _BV(ISC00);
+	MCUCR |= _BV(ISC11) | _BV(ISC10);
 	
 	// General Interrupt Control Register – GICR
 	// Bit 6 – INT0: External Interrupt Request 0 Enable
-	GICR = _BV(INT0);
+	// GICR = _BV(INT0);
+	GICR |= _BV(INT1);
+
+
 }
 
 // Main function and idle loop
@@ -111,7 +115,7 @@ int main() {
 	uart_init();
 	
 	// Initialise the timer for periodic checks
-	timer_init();
+	// timer_init();
 
 	external_init();
 
@@ -120,6 +124,8 @@ int main() {
 #endif
 
 	service_init();
+
+	// eeprom_write_byte(0, 0);
 
 	// Enable Interrupts
 	sei();
@@ -133,7 +139,9 @@ int main() {
 // Overflow interrupt for timer zero - Used for executing periodic statements
 SIGNAL(SIG_OVERFLOW0) {
 	// Send every 15 overflows - approx equals 1 second
-	if (counter > 15) {
+	if (counter > 10) {
+		PORTB = ~PORTB;
+		counter = 0;
 
 	}
 	else 

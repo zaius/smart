@@ -74,7 +74,7 @@ void service_init(void) {
  * service_callback - process an incoming packet
  */
 void service_callback(UDP_HEADER * header_in) {
-	uint8_t * message = &data[IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH];
+	uint8_t * message = data + IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH;
 	uint16_t message_size = header_in->length - UDP_HEADER_LENGTH;
 
 	if (compare_ip(header_in->ip_header->source_ip, bcast_ip)) {
@@ -183,11 +183,18 @@ void service_callback(UDP_HEADER * header_in) {
 		// work out the length of the arguments
 		uint8_t start = 3, end, i;
 
+		// Make start the first opening bracket
 		while (message[start] != '(' && start < message_size)
 			start++;
+		
+		// Currently start is on the bracket, move it forward
+		// to the first character of the arguments
 		start++;
-
+		
+		// Make end the first character of the arguments
 		end = start;
+
+		// Make end the first closing bracket
 		while (message[end] != ')' && end < message_size)
 			end++;
 
@@ -203,10 +210,11 @@ void service_callback(UDP_HEADER * header_in) {
 			if (services[i]->type != CONSUMER) continue;
 
 			if (!memcmp(message + 3, services[i]->name, services[i]->name_length)) {
-				services[i]->on_exec(data + start, end - start);
-				break;
+				services[i]->on_exec(message + start, end - start);
+				return;
 			}
 		}
+
 		// Silently ignore if a message doesn't match
 		// TODO: Maybe need to log this
 
@@ -231,7 +239,8 @@ void erase(struct destination * pointer) {
 
 void load(struct destination * pointer) {
 	struct destination * previous = NULL;
-	uint8_t num_messages, i, j, * addr = (uint8_t *) 0;
+	uint8_t num_messages, i, j;
+	uint8_t * addr = (uint8_t *) 0;
 
 	num_messages = eeprom_read_byte(addr++);
 	for (i = 0; i < num_messages; i++) {
@@ -335,7 +344,7 @@ uint8_t debounce(volatile uint8_t *port, uint8_t pin) {
 	// Loop until the value present on the pin and the value
 	// that was there 10 milliseconds ago are equal
 	while (previous != value) {
-		msleep(10);
+		msleep(20);
 
 		previous = value;
 		value = *port & _BV(pin);
@@ -352,12 +361,13 @@ SIGNAL(SIG_INTERRUPT1) {
 
 	// Debounce the switch used to call the interrupt
 	// (Don't use INT1 as the pin - that is an index in a register)
-	value = debounce(&PIND, PD3);
-
 	// If the switch was actually turning off and the interrupt was just 
 	// caused by bounces (or noise) then ignore the interrupt
-	if (value != 1) 
+	if (debounce(&PIND, PD3) != 1) {
+		// Clear any int1 interrupts that might have happened since
+		GIFR |= _BV(INTF1);
 		return;
+	}
 	
 
 	if (program_mode) {
@@ -371,8 +381,8 @@ SIGNAL(SIG_INTERRUPT1) {
 			uint16_t position = IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH;
 
 			// Copy the message prefix into the buffer
-			memcpy(data + position, "10 program(false);", 18);
-			position += 18;
+			memcpy(data + position, "10 program(false);\r\n", 20);
+			position += 20;
 
 			// Fill the UDP header
 			udp_header.ip_header = &ip_header;
@@ -402,6 +412,9 @@ SIGNAL(SIG_INTERRUPT1) {
 			// Change out of program mode
 			program_mode = FALSE;
 			program_pushed = FALSE;
+
+			// Clear any int1 interrupts that might have happened since
+			GIFR |= _BV(INTF1);
 
 			// Return to idle mode
 			return;
@@ -500,6 +513,10 @@ SIGNAL(SIG_INTERRUPT1) {
 				}
 				else {
 					log("Non-existant data type");
+
+					// Clear any int1 interrupts that might have happened since
+					GIFR |= _BV(INTF1);
+
 					return;
 				}
 
@@ -534,6 +551,6 @@ SIGNAL(SIG_INTERRUPT1) {
 		udp_send(&udp_header);
 	} // end if need_to_send
 
-	// Clear any int0 interrupts that might have happened since
+	// Clear any int1 interrupts that might have happened since
 	GIFR |= _BV(INTF1);
 } // end SIGNAL

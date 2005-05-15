@@ -32,22 +32,28 @@
 #include <avr/io.h>
 #include <string.h> // memcmp
 
+
+const uint8_t name1[4] = "turn";
+const uint8_t name2[6] = "toggle";
+
 struct service 
-	turn_service = {CONSUMER, 4, "turn", &turn_exec, 1, {BOOL}},
-	toggle_service = {CONSUMER, 6, "toggle", &toggle_exec, 0, {}};
+	//turn_service = {CONSUMER, 4, "turn", &turn_exec, 1, {BOOL}},
+	// toggle_service = {CONSUMER, 6, "toggle", &toggle_exec, 0, {}};
+	turn_service = {CONSUMER, 4, name1, &turn_exec, 1, {BOOL}},
+	toggle_service = {CONSUMER, 6, name2, &toggle_exec, 0, {}};
 
 struct service * services[NUM_SERVICES] = {&turn_service, &toggle_service};
 
 
-void toggle_exec(char * args, uint8_t length) {
+void toggle_exec(uint8_t * args, uint8_t length) {
 	PORTB = ~PORTB;
 }
 
-void turn_exec(char * args, uint8_t length) {
-	if (!memcmp(args, "true", length))
-		PORTB = 0xff;
-	else if (!memcmp(args, "false", length))
+void turn_exec(uint8_t * args, uint8_t length) {
+	if (!memcmp(args, "false", length))
 		PORTB = 0x00;
+	else if (!memcmp(args, "true", length))
+		PORTB = 0xff;
 	else
 		log("Bad turn argument");
 }
