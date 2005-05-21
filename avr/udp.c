@@ -74,7 +74,7 @@ void udp_send(UDP_HEADER * header) {
 void udp_receive(struct ipv4_header * header_in) {
 	uint8_t position = IPV4_HEADER_LENGTH;
 	uint16_t checksum;
-	NODE * pointer = first;
+	NODE * pointer;
 	UDP_HEADER header_out;
 
 	header_out.ip_header = header_in;
@@ -100,6 +100,7 @@ void udp_receive(struct ipv4_header * header_in) {
 	}
 
 	// Pass up to application
+	pointer = first;
 	while (pointer != NULL) {
 		if (pointer->port == header_out.dest_port) {
 			// We've found an application listening on this port

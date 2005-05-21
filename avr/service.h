@@ -37,9 +37,9 @@ struct service {
 	uint8_t type;
 	uint8_t name_length;
 	uint8_t * name;
-	void (*on_exec)(char * args, uint8_t length);
+	void (*on_exec)(uint8_t * args, uint8_t length);
 	uint8_t arg_length;
-	uint8_t arguments[];
+	uint8_t * arguments;
 };
 
 struct destination {
@@ -52,6 +52,7 @@ struct destination {
 
 extern struct destination * message_list;
 
+void broadcast(uint8_t * string, uint8_t length);
 
 // Prototypes
 

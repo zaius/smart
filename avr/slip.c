@@ -167,7 +167,9 @@ uint8_t slip_getc(uint8_t *c) {
 		*c = UDR;
 
 		// Ignore the character if there was a framing error
-		if (bit_is_set(UCSRA, FE)) return 0;
+		// Pretty sure that we don't want to ignore - this could happen
+		// during a collision and we definitely need to know then
+		// if (bit_is_set(UCSRA, FE)) return 0;
 
 		return 1;
 	}

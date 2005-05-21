@@ -42,8 +42,10 @@
 
 #if defined light
 #include "light.h"
-#elif defined button
-#include "button.h"
+#elif defined toggleswitch
+#include "toggleswitch.h"
+#elif defined polarswitch
+#include "polarswitch.h"
 #endif
 
 uint8_t counter = 0;
@@ -86,15 +88,19 @@ void external_init() {
 	// 0		1		Any logical change on INT0 generates an interrupt request.
 	// 1		0		The falling edge of INT0 generates an interrupt request.
 	// 1		1		The rising edge of INT0 generates an interrupt request.
-	// MCUCR = _BV(ISC01) | _BV(ISC00);
-	MCUCR |= _BV(ISC11) | _BV(ISC10);
-	
+	MCUCR = _BV(ISC11) | _BV(ISC10);
+#if defined toggleswitch
+	MCUCR |= _BV(ISC01) | _BV(ISC00);
+#elif defined polarswitch
+	MCUCR |= _BV(ISC01);
+#endif
+
 	// General Interrupt Control Register – GICR
 	// Bit 6 – INT0: External Interrupt Request 0 Enable
-	// GICR = _BV(INT0);
-	GICR |= _BV(INT1);
-
-
+	GICR = _BV(INT1);
+#if defined toggleswitch || defined polarswitch
+	GICR |= _BV(INT0);
+#endif
 }
 
 // Main function and idle loop

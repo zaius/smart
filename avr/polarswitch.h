@@ -17,7 +17,7 @@
 /**
  * Smart Framework - AVR Implementation
  * 
- * \file avr/button.h
+ * \file avr/polarswitch.h
  * \author David Kelso - david@kelso.id.au
  * \brief Header for switch/button functions
  */

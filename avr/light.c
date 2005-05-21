@@ -33,14 +33,15 @@
 #include <string.h> // memcmp
 
 
-const uint8_t name1[4] = "turn";
-const uint8_t name2[6] = "toggle";
+uint8_t name1[4] = "turn";
+uint8_t name2[6] = "toggle";
+uint8_t args1[1] = {BOOL};
 
 struct service 
 	//turn_service = {CONSUMER, 4, "turn", &turn_exec, 1, {BOOL}},
 	// toggle_service = {CONSUMER, 6, "toggle", &toggle_exec, 0, {}};
-	turn_service = {CONSUMER, 4, name1, &turn_exec, 1, {BOOL}},
-	toggle_service = {CONSUMER, 6, name2, &toggle_exec, 0, {}};
+	turn_service = {CONSUMER, 4, name1, &turn_exec, 1, args1},
+	toggle_service = {CONSUMER, 6, name2, &toggle_exec, 0, NULL};
 
 struct service * services[NUM_SERVICES] = {&turn_service, &toggle_service};
 

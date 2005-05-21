@@ -126,17 +126,6 @@ SCANF_LIB =
 
 MATH_LIB = -lm
 
-# External memory options
-
-# 64 KB of external RAM, starting after internal RAM (ATmega128!),
-# used for variables (.data/.bss) and heap (malloc()).
-#EXTMEMOPTS = -Wl,-Tdata=0x801100,--defsym=__heap_end=0x80ffff
-
-# 64 KB of external RAM, starting after internal RAM (ATmega128!),
-# only used for heap (malloc()).
-#EXTMEMOPTS = -Wl,--defsym=__heap_start=0x801100,--defsym=__heap_end=0x80ffff
-
-EXTMEMOPTS =
 
 # Linker flags.
 #  -Wl,...:     tell GCC to pass this to linker.

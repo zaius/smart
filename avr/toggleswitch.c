@@ -25,16 +25,17 @@
 #include "conf.h"
 #include "ipv4.h"
 #include "udp.h"
-#include "button.h"
+#include "toggleswitch.h"
 #include "service.h"
 
 #include <avr/signal.h>
 #include <avr/interrupt.h>
 #include <string.h>        // memcpy
 
+uint8_t name[6] = "toggle";
+
 struct service 
-	// turn_service = {PRODUCER, 4, "turn", NULL, 1, {BOOL}};
-	toggle_service = {PRODUCER, 6, "toggle", NULL, 0, {}};
+	toggle_service = {PRODUCER, 6, name, NULL, 0, NULL};
 
 struct service * services[NUM_SERVICES] = {&toggle_service};
 
@@ -43,8 +44,10 @@ SIGNAL(SIG_INTERRUPT0) {
 	struct destination * pointer = message_list;
 
 	// Debounce the switch used to call the interrupt (see service.c)
-	if (debounce(&PIND, PD3) != 1)
+	if (debounce(&PIND, PD2) != 1) {
+        GIFR |= _BV(INTF0);
 		return;
+	}
 
 	while (pointer != NULL) {
 		if (pointer->source_service == &toggle_service) {
@@ -55,7 +58,9 @@ SIGNAL(SIG_INTERRUPT0) {
 
 			// Copy the message into the buffer
 			memcpy(data + position, "20 toggle();", 12);
-			data_length = position + 12;
+			position += 12;
+
+			data_length = position;
 
 			// Fill the UDP header
 			udp_header.ip_header = &ip_header;
@@ -75,4 +80,6 @@ SIGNAL(SIG_INTERRUPT0) {
 		
 		pointer = pointer->next;
 	}
+
+	GIFR = _BV(INTF0);
 }
