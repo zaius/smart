@@ -99,4 +99,28 @@ void decode(uint8_t * data, size_t length) {
 	// Destination address
 	printf("Destination Address: %d.%d.%d.%d\n", data[position], data[position+1], data[position+2], data[position+3]);
 	position += 4;
+
+	// Source Port
+	temp = data[position++] << 8;
+	temp += data[position++];
+	printf("UDP Source Port: %d\n", temp);
+
+	// Dest Port
+	temp = data[position++] << 8;
+	temp += data[position++];
+	printf("UDP Destination Port: %d\n", temp);
+	
+	// Length
+	temp = data[position++] << 8;
+	temp += data[position++];
+	printf("UDP Length: %d\n", temp);
+
+	// Checksum
+	position += 2;
+	
+	// Data
+	printf("Data: ");
+	while (position < length) 
+		printf("%c", data[position++]);
+	printf("\n");
 }

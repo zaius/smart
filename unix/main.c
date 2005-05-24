@@ -208,11 +208,12 @@ void tunnel_init() {
 	i = ioctl(tunnel, TUNSIFMODE, &i);
 	if (i == -1) warn("TUNSIFMODE");
 
+#if defined __FreeBSD__
 	// Prepend packets with the destination address
 	i = 0;
 	i = ioctl(tunnel, TUNSLMODE, &i);
 	if (i == -1) warn("TUNSLMODE");
-
+#endif
 
 	// create a socket in order to configure the interface
 	sock = socket(AF_INET, SOCK_RAW, 0);
