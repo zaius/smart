@@ -131,8 +131,6 @@ int main() {
 
 	service_init();
 
-	// eeprom_write_byte(0, 0);
-
 	// Enable Interrupts
 	sei();
 

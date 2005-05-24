@@ -27,8 +27,10 @@ Make sure malloc memory is being correctly freed
 
 Things I want after assessment:
 Programming over the network
-Zigbee
-Restructure the whole file layout and making process to make things nice
+Zigbee for control, wireless for data
+Restructure the whole file layout and making process to make things nice (eg running echo and SCP)
+Rearrange IP/UDP structs to be nicer, auto calculate lengths, etc
+Make all the message/data/position/etc code when sending consistent
 Use timers to periodically call events
 Random IP addresses / dhcp
 Security - physically transmit shared keys between devices?
@@ -37,3 +39,6 @@ ICMP
 Maybe TCP?
 Webpage
 Change all possible run time stuff to compile time
+Make debugging device, get it to connect via spi/i2c
+Iron out memory bugs
+Fix saving/loading in eeprom

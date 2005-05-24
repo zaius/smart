@@ -46,7 +46,7 @@ struct destination {
 	uint8_t address[4]; // IP address of the destination
 	uint16_t port; // Port of the destination
 	struct service * source_service; // The local producer service
-	struct service dest_service; // The remote consumer service
+	// struct service dest_service; // The remote consumer service
 	struct destination * next; // The next destination in the message list
 };
 

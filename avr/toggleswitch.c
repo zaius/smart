@@ -17,7 +17,7 @@
 /**
  * Smart Framework - AVR Implementation
  * 
- * \file avr/button.c
+ * \file avr/toggleswitch.c
  * \author David Kelso - david@kelso.id.au
  * \brief Functions to control a switch/button
  */

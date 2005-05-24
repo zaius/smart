@@ -148,20 +148,20 @@ void service_callback(UDP_HEADER * header_in) {
 					// Compare service names
 					if (!memcmp(message + position, services[i]->name, services[i]->name_length)) {
 						// We've had a match! Add it to the temp message list
-						struct destination * pointer, * list;
+						struct destination * pointer;
 
 						pointer = malloc(sizeof(struct destination));
 						memcpy(pointer->address, header_in->ip_header->source_ip, 4);
 						pointer->port = header_in->source_port;
 						pointer->source_service = services[i];
-						pointer->dest_service.type = CONSUMER;
-						pointer->dest_service.name_length = services[i]->name_length;
-						pointer->dest_service.name = services[i]->name;
+						// pointer->dest_service.type = CONSUMER;
+						// pointer->dest_service.name_length = services[i]->name_length;
+						// pointer->dest_service.name = services[i]->name;
 						// FIXME
 						// pointer->dest_service.arg_length = 0;
 						// pointer->dest_service.arguments = {};
+						pointer->next = NULL;
 
-						list = temp_message_list;
 						if (temp_message_list == NULL)
 							// There's nothing in the list, make it the first
 							temp_message_list = pointer;
@@ -172,7 +172,6 @@ void service_callback(UDP_HEADER * header_in) {
 								list = list->next;
 
 							list->next = pointer;
-							pointer->next = NULL;
 						}
 					}
 
@@ -267,6 +266,14 @@ void load(struct destination * pointer) {
 	uint8_t * addr = (uint8_t *) 0;
 
 	num_messages = eeprom_read_byte(addr++);
+
+	// Because eeprom has the value 255 when erased, we can run
+	// into big problems if this doesn't get done
+	if (num_messages == 255) {
+		log("No data in EEPROM");
+		return;
+	}
+
 	for (i = 0; i < num_messages; i++) {
 		uint8_t * name, length;
 		pointer = malloc(sizeof(struct destination));
