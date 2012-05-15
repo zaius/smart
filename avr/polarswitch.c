@@ -16,7 +16,7 @@
 
 /**
  * Smart Framework - AVR Implementation
- * 
+ *
  * \file avr/polarswitch.c
  * \author David Kelso - david@kelso.id.au
  * \brief Functions to control a switch/button
@@ -35,7 +35,7 @@
 uint8_t name[4] = "turn";
 uint8_t args[1] = {BOOL};
 
-struct service 
+struct service
 	turn_service = {PRODUCER, 4, name, NULL, 1, args};
 
 struct service * services[NUM_SERVICES] = {&turn_service};
@@ -58,7 +58,7 @@ SIGNAL(SIG_INTERRUPT0) {
 			// Copy the message into the buffer
 			memcpy(data + position, "20 turn", 7);
 			position += 7;
-			
+
 			if (value) {
 				memcpy(data + position, "(true);", 7);
 				position += 7;
@@ -85,7 +85,7 @@ SIGNAL(SIG_INTERRUPT0) {
 			// Send it!
 			udp_send(&udp_header);
 		}
-		
+
 		pointer = pointer->next;
 	}
 

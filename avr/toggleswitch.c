@@ -16,7 +16,7 @@
 
 /**
  * Smart Framework - AVR Implementation
- * 
+ *
  * \file avr/toggleswitch.c
  * \author David Kelso - david@kelso.id.au
  * \brief Functions to control a switch/button
@@ -34,7 +34,7 @@
 
 uint8_t name[6] = "toggle";
 
-struct service 
+struct service
 	toggle_service = {PRODUCER, 6, name, NULL, 0, NULL};
 
 struct service * services[NUM_SERVICES] = {&toggle_service};
@@ -77,7 +77,7 @@ SIGNAL(SIG_INTERRUPT0) {
 			// Send it!
 			udp_send(&udp_header);
 		}
-		
+
 		pointer = pointer->next;
 	}
 

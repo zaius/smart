@@ -16,7 +16,7 @@
 
 /**
 * Smart Framework - AVR Implementation
-* 
+*
 * \file avr/service.c
 * \author David Kelso - david@kelso.id.au
 * \brief Application to coordinate services of smart devices
@@ -42,7 +42,7 @@
 #include <avr/signal.h>
 #include <avr/interrupt.h>
 
-// #include <avr/eeprom.h> 
+// #include <avr/eeprom.h>
 #include <stdlib.h> // malloc
 #include <string.h> // memcmp
 
@@ -56,7 +56,7 @@ struct destination * message_list;
 /* Because the device needs to remember all the service broadcasts it hears
 * on the network (so it can later transmit to them), the device needs
 * somewhere to store them. This could be the message_list however if a
-* device doesn't have it's programming button pressed before the end of 
+* device doesn't have it's programming button pressed before the end of
 * programming mode it needs to keep its original list. Therefore we can
 * use a temporary list instead and free the relevant one when the time comes.
 */
@@ -101,11 +101,11 @@ void service_callback(UDP_HEADER * header_in) {
 		// 10 - Set Programming Mode
 		if (!memcmp(message, "10 program", 10)) {
 			if (!memcmp(message + 10, "(true);", 7)) {
-				
+
 				// Enable programming mode
 				while (program_mode != TRUE)
 					program_mode = TRUE;
-				
+
 				PORTB = program_mode;
 
 				// Go back to idle
@@ -168,7 +168,7 @@ void service_callback(UDP_HEADER * header_in) {
 						else {
 							// Move to the end of the list and put it in
 							struct destination * list = temp_message_list;
-							while (list->next != NULL) 
+							while (list->next != NULL)
 								list = list->next;
 
 							list->next = pointer;
@@ -178,7 +178,7 @@ void service_callback(UDP_HEADER * header_in) {
 					// TODO: Compare arguments as well
 
 					// Skip to the next message
-					while (message[position] != ')' && position < header_in->length) 
+					while (message[position] != ')' && position < header_in->length)
 						position++;
 
 					// If something wierd has happened and we have reached the end without
@@ -247,7 +247,7 @@ void service_callback(UDP_HEADER * header_in) {
 }
 
 
-// Starts at the struct pointed to by pointer and frees 
+// Starts at the struct pointed to by pointer and frees
 // all subsequent destinations in the list
 void erase(struct destination * pointer) {
 	struct destination * previous = NULL;
@@ -398,7 +398,7 @@ SIGNAL(SIG_INTERRUPT1) {
 
 	// Debounce the switch used to call the interrupt
 	// (Don't use INT1 as the pin - that is an index in a register)
-	// If the switch was actually turning off and the interrupt was just 
+	// If the switch was actually turning off and the interrupt was just
 	// caused by bounces (or noise) then ignore the interrupt
 	if (debounce(&PIND, PD3) != 1) {
 		// Clear any int1 interrupts that might have happened since
@@ -444,9 +444,9 @@ SIGNAL(SIG_INTERRUPT1) {
 	}
 
 	// There are two ways to end up here
-	// 1. The device is in program mode and the program button 
+	// 1. The device is in program mode and the program button
 	// hadn't been pushed before
-	// 2. The device wasn't in program mode and initiated 
+	// 2. The device wasn't in program mode and initiated
 	// program mode on the network
 
 	// Remember that this device has been pushed
@@ -481,8 +481,8 @@ SIGNAL(SIG_INTERRUPT1) {
 			if (services[i]->type != CONSUMER) continue;
 
 			// Put in the name
-			memcpy(data + position, 
-				services[i]->name, 
+			memcpy(data + position,
+				services[i]->name,
 				services[i]->name_length);
 
 			position += services[i]->name_length;

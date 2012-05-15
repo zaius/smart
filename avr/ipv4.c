@@ -16,7 +16,7 @@
 
 /**
  * Smart Framework - AVR Implementation
- * 
+ *
  * \file avr/ipv4.c
  * \author David Kelso - david@kelso.id.au
  * \brief Internet Protocol (version 4) implementation
@@ -46,7 +46,7 @@ uint8_t compare_ip(uint8_t * one, uint8_t * two) {
 }
 
 void ipv4_send(IPV4_HEADER *header) {
-	uint8_t position = 0, i; 
+	uint8_t position = 0, i;
 	uint16_t checksum = 0;
 
 	// Version and Header Length
@@ -73,7 +73,7 @@ void ipv4_send(IPV4_HEADER *header) {
 
 	// Protocol
 	data[position++] = header->protocol;
-	
+
 	// Zero the checksum fields for calculation
 	data[position++] = 0;
 	data[position++] = 0;
@@ -96,7 +96,7 @@ void ipv4_send(IPV4_HEADER *header) {
 		uint16_t calc;
 		calc  = data[--i];
 		calc += data[--i] << 8;
-		
+
 		checksum += calc;
 
 		// If the carry bit is set we had overflow - add one to the checksum
@@ -120,18 +120,18 @@ void ipv4_receive() {
 	IPV4_HEADER header;
 
 	// Header Checksum...
-	// From RFC1071: To check a checksum, the 1's complement sum is computed 
-	// over the same set of octets, including the checksum field.  If the 
-	// result is all 1 bits (-0 in 1's complement arithmetic), the check 
+	// From RFC1071: To check a checksum, the 1's complement sum is computed
+	// over the same set of octets, including the checksum field.  If the
+	// result is all 1 bits (-0 in 1's complement arithmetic), the check
 	// succeeds.
 	i = IPV4_HEADER_LENGTH;
 	while (i > 1) {
-		// TODO: Maybe we can drop out calc and add straight into the 
+		// TODO: Maybe we can drop out calc and add straight into the
 		// checksum? Would need to do carries carefully
 		uint16_t calc;
 		calc  = data[--i];
 		calc += data[--i] << 8;
-		
+
 		checksum += calc;
 
 		// If the carry bit is set we had overflow - add one to the checksum
@@ -168,7 +168,7 @@ void ipv4_receive() {
 
 	// Protocol
 	header.protocol = data[position++];
-	
+
 	// Checksum (Done already)
 	position += 2;
 
@@ -188,9 +188,9 @@ void ipv4_receive() {
 	if (!compare_ip(header.dest_ip, local_ip) &&
 		!compare_ip(header.dest_ip, bcast_ip))
 		return;
-	
+
 	// Pass the packet off
-	// TODO: Need to do the whole #ifdef thing and check whether we 
+	// TODO: Need to do the whole #ifdef thing and check whether we
 	// have certain versions protocols in
 	if (header.protocol == UDP_PROTOCOL)
         udp_receive(&header);

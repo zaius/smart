@@ -2,7 +2,7 @@
 	// Try change position stuff to be pointers
 Some variables are incorrect sizes / mixed sizes
 // SLIP needs some work before it will receive packets
-// Some solution to SLIP needing a seperate receive buffer 
+// Some solution to SLIP needing a seperate receive buffer
 // Some solution to half received/incomplete slip packets
 	stop allowing disjointed packets?
 	Block until a full packet received (would need some sort of timeout)

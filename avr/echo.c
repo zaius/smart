@@ -16,7 +16,7 @@
 
 /**
  * Smart Framework - AVR Implementation
- * 
+ *
  * \file avr/echo.c
  * \author David Kelso - david@kelso.id.au
  * \brief Simple UDP echo application
@@ -56,7 +56,7 @@ void echo_callback(UDP_HEADER * header_in) {
 
 	// Reset the length
 	data_length = header_in->ip_header->length;
-	
+
 	header_out.source_port = PORT;
 	header_out.remote_port = header_in->source_port;
 	header_out.length = header_in->length;

@@ -16,7 +16,7 @@
 
 /**
  * Smart Framework - AVR Implementation
- * 
+ *
  * \file avr/light.c
  * \author David Kelso - david@kelso.id.au
  * \brief Functions to control a light
@@ -37,7 +37,7 @@ uint8_t name1[4] = "turn";
 uint8_t name2[6] = "toggle";
 uint8_t args1[1] = {BOOL};
 
-struct service 
+struct service
 	//turn_service = {CONSUMER, 4, "turn", &turn_exec, 1, {BOOL}},
 	// toggle_service = {CONSUMER, 6, "toggle", &toggle_exec, 0, {}};
 	turn_service = {CONSUMER, 4, name1, &turn_exec, 1, args1},
